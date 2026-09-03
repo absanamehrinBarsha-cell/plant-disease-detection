@@ -1,7 +1,27 @@
 import os
+
+# ============================================================
+# RENDER CPU / TENSORFLOW PERFORMANCE CONFIGURATION
+# ============================================================
+
+# Disable XLA/JIT compilation.
+# Render's CPU was spending a very long time compiling
+# the MobileNetV2 inference graph.
+os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=0"
+os.environ["XLA_FLAGS"] = "--xla_cpu_multi_thread_eigen=false"
+
+# Limit TensorFlow CPU threads on small Render instances.
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "2"
+os.environ["TF_NUM_INTEROP_THREADS"] = "2"
+
 import re
 import numpy as np
 import tensorflow as tf
+
+# Explicitly disable TensorFlow JIT.
+tf.config.optimizer.set_jit(False)
+
 import joblib
 import gradio as gr
 
