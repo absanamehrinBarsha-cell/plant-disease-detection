@@ -6,23 +6,28 @@ import tensorflow as tf
 import joblib
 import gradio as gr
 
+# ============================================================
+# RENDER DEPLOYMENT CONFIGURATION
+# ============================================================
+
+# Render supplies the PORT environment variable.
+# Gradio must listen on all network interfaces.
+
+RENDER_HOST = "0.0.0.0"
+RENDER_PORT = int(os.environ.get("PORT", "10000"))
+
+os.environ["GRADIO_SERVER_NAME"] = RENDER_HOST
+os.environ["GRADIO_SERVER_PORT"] = str(RENDER_PORT)
+os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
+
+
+
 
 # ============================================================
 # MODEL PATHS
 # ============================================================
 
 
-# ============================================================
-# RENDER DEPLOYMENT CONFIGURATION
-# ============================================================
-
-import os
-
-# Render provides PORT dynamically.
-# Gradio reads these environment variables.
-os.environ["GRADIO_SERVER_NAME"] = "0.0.0.0"
-os.environ["GRADIO_SERVER_PORT"] = os.environ.get("PORT", "10000")
-os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
