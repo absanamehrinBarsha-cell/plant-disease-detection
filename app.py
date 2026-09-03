@@ -1,4 +1,3 @@
-
 import os
 import re
 import numpy as np
@@ -10,9 +9,6 @@ import gradio as gr
 # RENDER DEPLOYMENT CONFIGURATION
 # ============================================================
 
-# Render supplies the PORT environment variable.
-# Gradio must listen on all network interfaces.
-
 RENDER_HOST = "0.0.0.0"
 RENDER_PORT = int(os.environ.get("PORT", "10000"))
 
@@ -21,14 +17,9 @@ os.environ["GRADIO_SERVER_PORT"] = str(RENDER_PORT)
 os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
 
 
-
-
 # ============================================================
 # MODEL PATHS
 # ============================================================
-
-
-
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
@@ -63,7 +54,9 @@ label_encoder_path = os.path.join(
 # LOAD MODELS
 # ============================================================
 
+print("==============================================")
 print("Loading Plant Disease Detection models...")
+print("==============================================")
 
 vision_model = tf.keras.models.load_model(
     vision_path
@@ -91,6 +84,7 @@ IMAGE_SIZE = (224, 224)
 
 print("Models loaded successfully.")
 print("Number of classes:", len(classes))
+print("==============================================")
 
 
 # ============================================================
@@ -127,6 +121,7 @@ def preprocess_image(image):
 
     image = tf.convert_to_tensor(image)
 
+    # Remove alpha channel if present
     if image.shape[-1] == 4:
         image = image[..., :3]
 
@@ -158,9 +153,13 @@ def preprocess_image(image):
 
 def vision_predict(image):
 
+    print("Vision Agent: preprocessing image...")
+
     processed_image = preprocess_image(
         image
     )
+
+    print("Vision Agent: running MobileNetV2...")
 
     prediction = vision_model.predict(
         processed_image,
@@ -183,6 +182,12 @@ def vision_predict(image):
         probabilities[predicted_index]
     )
 
+    print(
+        "Vision Agent:",
+        predicted_disease,
+        f"({confidence * 100:.2f}%)"
+    )
+
     return {
         "disease": predicted_disease,
         "confidence": confidence,
@@ -197,9 +202,26 @@ def vision_predict(image):
 
 def text_predict(symptoms):
 
+    print("Text Agent: processing symptoms...")
+
     cleaned_text = clean_text(
         symptoms
     )
+
+    # Handle empty text safely
+    if not cleaned_text:
+
+        probabilities = np.zeros(
+            len(classes),
+            dtype=np.float32
+        )
+
+        return {
+            "disease": "Not provided",
+            "confidence": 0.0,
+            "class_index": -1,
+            "probabilities": probabilities
+        }
 
     text_features = tfidf_vectorizer.transform(
         [cleaned_text]
@@ -219,6 +241,12 @@ def text_predict(symptoms):
 
     confidence = float(
         probabilities[predicted_index]
+    )
+
+    print(
+        "Text Agent:",
+        predicted_disease,
+        f"({confidence * 100:.2f}%)"
     )
 
     return {
@@ -268,22 +296,20 @@ def get_top_predictions(
 
 # ============================================================
 # FUSION
+#
+# IMPORTANT:
+# This function receives already-computed predictions.
+# It DOES NOT run the models again.
 # ============================================================
 
 def fusion_predict(
-    image,
-    symptoms,
+    vision_result,
+    text_result,
     vision_weight=0.5,
     text_weight=0.5
 ):
 
-    vision_result = vision_predict(
-        image
-    )
-
-    text_result = text_predict(
-        symptoms
-    )
+    print("Fusion Agent: combining predictions...")
 
     vision_probabilities = np.asarray(
         vision_result["probabilities"]
@@ -328,9 +354,14 @@ def fusion_predict(
     if agents_agree:
 
         if final_confidence >= 0.70:
+
             decision = "Both Agents Agree"
+
         else:
-            decision = "Both Agents Agree - Low Confidence"
+
+            decision = (
+                "Both Agents Agree - Low Confidence"
+            )
 
     else:
 
@@ -339,11 +370,21 @@ def fusion_predict(
             >=
             text_result["confidence"]
         ):
+
             decision = "Vision Agent Preferred"
+
         else:
+
             decision = "Text Agent Preferred"
 
+    print(
+        "Fusion Agent:",
+        final_disease,
+        f"({final_confidence * 100:.2f}%)"
+    )
+
     return {
+
         "vision_disease":
             vision_result["disease"],
 
@@ -385,7 +426,18 @@ def web_predict(
     symptoms
 ):
 
+    print("")
+    print("==============================================")
+    print("STARTING PLANT ANALYSIS")
+    print("==============================================")
+
+    # --------------------------------------------------------
+    # CHECK IMAGE
+    # --------------------------------------------------------
+
     if image is None:
+
+        print("No image supplied.")
 
         return (
             "⚠️ Please upload a leaf image.",
@@ -394,42 +446,92 @@ def web_predict(
             "",
             "",
             "",
-            "",
-            gr.update(visible=True)
+            ""
         )
+
+    # --------------------------------------------------------
+    # CLEAN SYMPTOMS
+    # --------------------------------------------------------
 
     if symptoms is None:
         symptoms = ""
 
     symptoms = symptoms.strip()
 
+    # --------------------------------------------------------
+    # VISION PREDICTION
+    #
+    # RUN ONLY ONCE
+    # --------------------------------------------------------
+
+    print("")
+    print("STEP 1: Vision Agent")
+
     vision_result = vision_predict(
         image
     )
 
-    vision_disease = vision_result["disease"]
-    vision_confidence = vision_result["confidence"]
+    vision_disease = vision_result[
+        "disease"
+    ]
+
+    vision_confidence = vision_result[
+        "confidence"
+    ]
+
+    # --------------------------------------------------------
+    # TEXT PREDICTION
+    # --------------------------------------------------------
 
     if symptoms:
+
+        print("")
+        print("STEP 2: Text Agent")
 
         text_result = text_predict(
             symptoms
         )
 
-        text_disease = text_result["disease"]
-        text_confidence = text_result["confidence"]
+        text_disease = text_result[
+            "disease"
+        ]
+
+        text_confidence = text_result[
+            "confidence"
+        ]
+
+        # ----------------------------------------------------
+        # FUSION
+        #
+        # IMPORTANT:
+        # Use existing results.
+        # Do NOT call vision_predict() or text_predict()
+        # again.
+        # ----------------------------------------------------
+
+        print("")
+        print("STEP 3: Fusion Agent")
 
         fusion_result = fusion_predict(
-            image,
-            symptoms
+            vision_result,
+            text_result
         )
 
-        final_disease = fusion_result["final_disease"]
-        final_confidence = fusion_result["final_confidence"]
+        final_disease = fusion_result[
+            "final_disease"
+        ]
 
-        decision = fusion_result["decision"]
+        final_confidence = fusion_result[
+            "final_confidence"
+        ]
 
-        agents_agree = fusion_result["agents_agree"]
+        decision = fusion_result[
+            "decision"
+        ]
+
+        agents_agree = fusion_result[
+            "agents_agree"
+        ]
 
         verification_needed = fusion_result[
             "verification_needed"
@@ -439,7 +541,15 @@ def web_predict(
             "final_probabilities"
         ]
 
+    # --------------------------------------------------------
+    # IMAGE ONLY
+    # --------------------------------------------------------
+
     else:
+
+        print("")
+        print("No symptoms provided.")
+        print("Using Vision Agent only.")
 
         text_disease = "Not provided"
         text_confidence = 0.0
@@ -450,11 +560,19 @@ def web_predict(
         decision = "Vision Agent Only"
 
         agents_agree = False
+
         verification_needed = False
 
         final_probabilities = vision_result[
             "probabilities"
         ]
+
+    # --------------------------------------------------------
+    # TOP 3 PREDICTIONS
+    # --------------------------------------------------------
+
+    print("")
+    print("STEP 4: Generating Top-3 predictions")
 
     top_predictions = get_top_predictions(
         final_probabilities,
@@ -472,6 +590,10 @@ def web_predict(
             f"**{rank}. {item['disease']}**"
             f" — {item['confidence'] * 100:.2f}%\n\n"
         )
+
+    # --------------------------------------------------------
+    # AGREEMENT STATUS
+    # --------------------------------------------------------
 
     if symptoms:
 
@@ -493,6 +615,10 @@ def web_predict(
             "🔵 **Vision Agent Only**"
         )
 
+    # --------------------------------------------------------
+    # VERIFICATION STATUS
+    # --------------------------------------------------------
+
     if verification_needed:
 
         verification_text = (
@@ -505,6 +631,10 @@ def web_predict(
             "✅ **No Further Verification Required**"
         )
 
+    # --------------------------------------------------------
+    # RESULT CARD
+    # --------------------------------------------------------
+
     result_card = f"""
 # 🌿 {final_disease}
 
@@ -516,6 +646,10 @@ def web_predict(
 {verification_text}
 """
 
+    # --------------------------------------------------------
+    # VISION CARD
+    # --------------------------------------------------------
+
     vision_card = f"""
 ### 👁️ Vision Agent
 
@@ -523,6 +657,10 @@ def web_predict(
 
 **Confidence:** {vision_confidence * 100:.2f}%
 """
+
+    # --------------------------------------------------------
+    # TEXT + FUSION CARDS
+    # --------------------------------------------------------
 
     if symptoms:
 
@@ -562,6 +700,15 @@ No symptoms were provided.
 Image-only prediction was used.
 """
 
+    # --------------------------------------------------------
+    # COMPLETE
+    # --------------------------------------------------------
+
+    print("")
+    print("==============================================")
+    print("ANALYSIS COMPLETE")
+    print("==============================================")
+
     return (
         result_card,
         vision_card,
@@ -569,8 +716,7 @@ Image-only prediction was used.
         fusion_card,
         top3_text,
         agreement_text,
-        verification_text,
-
+        verification_text
     )
 
 
@@ -588,9 +734,9 @@ def clear_interface():
         "",
         "",
         "",
-        gr.update(visible=False)
+        "",
+        ""
     )
-
 
 
 # ============================================================
@@ -897,7 +1043,6 @@ with gr.Blocks(
                 "Upload a clear image of the affected leaf."
             )
 
-
         # ----------------------------------------------------
         # SYMPTOMS
         # ----------------------------------------------------
@@ -1111,4 +1256,13 @@ with gr.Blocks(
 
 if __name__ == "__main__":
 
-    demo.launch(server_name="0.0.0.0", server_port=int(os.environ.get("PORT", 10000)))
+    print("==============================================")
+    print("STARTING PLANT DISEASE DETECTION APPLICATION")
+    print("Host:", RENDER_HOST)
+    print("Port:", RENDER_PORT)
+    print("==============================================")
+
+    demo.launch(
+        server_name=RENDER_HOST,
+        server_port=RENDER_PORT
+    )
