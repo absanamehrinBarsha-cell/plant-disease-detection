@@ -570,7 +570,7 @@ Image-only prediction was used.
         top3_text,
         agreement_text,
         verification_text,
-        gr.update(visible=True)
+
     )
 
 
@@ -962,7 +962,7 @@ with gr.Blocks(
     """)
 
     result_output = gr.Markdown(
-        visible=False,
+        visible=True,
         elem_classes=["result-card"]
     )
 
@@ -974,18 +974,18 @@ with gr.Blocks(
     with gr.Row():
 
         vision_output = gr.Markdown(
-            visible=False,
+            visible=True,
             elem_classes=["agent-card"]
         )
 
         text_output = gr.Markdown(
-            visible=False,
+            visible=True,
             elem_classes=["agent-card"]
         )
 
 
     fusion_output = gr.Markdown(
-        visible=False,
+        visible=True,
         elem_classes=["agent-card"]
     )
 
@@ -995,7 +995,7 @@ with gr.Blocks(
     # --------------------------------------------------------
 
     top3_output = gr.Markdown(
-        visible=False,
+        visible=True,
         elem_classes=["top-card"]
     )
 
@@ -1007,12 +1007,12 @@ with gr.Blocks(
     with gr.Row():
 
         agreement_output = gr.Markdown(
-            visible=False,
+            visible=True,
             elem_classes=["agent-card"]
         )
 
         verification_output = gr.Markdown(
-            visible=False,
+            visible=True,
             elem_classes=["agent-card"]
         )
 
@@ -1083,8 +1083,7 @@ with gr.Blocks(
             fusion_output,
             top3_output,
             agreement_output,
-            verification_output,
-            result_output
+            verification_output
         ]
     )
 
@@ -1100,7 +1099,8 @@ with gr.Blocks(
             text_output,
             fusion_output,
             top3_output,
-            agreement_output
+            agreement_output,
+            verification_output
         ]
     )
 
