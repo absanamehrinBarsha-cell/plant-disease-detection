@@ -1,29 +1,53 @@
 import os
 
 # ============================================================
-# RENDER CPU / TENSORFLOW PERFORMANCE CONFIGURATION
+# RENDER / TENSORFLOW CPU CONFIGURATION
+# ============================================================
+#
+# IMPORTANT:
+# These environment variables MUST be set before importing
+# TensorFlow.
+#
+# The Render CPU was previously spending ~2-3 minutes compiling
+# an XLA inference module. We avoid Keras .predict() below and
+# explicitly use direct eager inference instead.
 # ============================================================
 
-# Disable XLA/JIT compilation.
-# Render's CPU was spending a very long time compiling
-# the MobileNetV2 inference graph.
 os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=0"
-os.environ["XLA_FLAGS"] = "--xla_cpu_multi_thread_eigen=false"
-
-# Limit TensorFlow CPU threads on small Render instances.
 os.environ["OMP_NUM_THREADS"] = "2"
 os.environ["TF_NUM_INTRAOP_THREADS"] = "2"
 os.environ["TF_NUM_INTEROP_THREADS"] = "2"
 
+# Do NOT set XLA_FLAGS to a value that merely changes XLA
+# threading. We want XLA/JIT disabled rather than configured.
+
 import re
+import time
+
 import numpy as np
 import tensorflow as tf
-
-# Explicitly disable TensorFlow JIT.
-tf.config.optimizer.set_jit(False)
-
 import joblib
 import gradio as gr
+
+
+# ============================================================
+# EXPLICITLY DISABLE TENSORFLOW JIT / XLA
+# ============================================================
+
+tf.config.optimizer.set_jit(False)
+
+print("==============================================")
+print("TensorFlow configuration")
+print("==============================================")
+print("TensorFlow version:", tf.__version__)
+
+try:
+    print("JIT enabled:", tf.config.optimizer.get_jit())
+except Exception:
+    print("JIT status: unable to query")
+
+print("==============================================")
+
 
 # ============================================================
 # RENDER DEPLOYMENT CONFIGURATION
@@ -78,9 +102,35 @@ print("==============================================")
 print("Loading Plant Disease Detection models...")
 print("==============================================")
 
+load_start = time.perf_counter()
+
+# ------------------------------------------------------------
+# MobileNetV2
+# ------------------------------------------------------------
+#
+# compile=False is intentional.
+#
+# This application performs inference only. We do not need the
+# training/compile configuration from the saved model.
+# ------------------------------------------------------------
+
 vision_model = tf.keras.models.load_model(
-    vision_path
+    vision_path,
+    compile=False
 )
+
+# ------------------------------------------------------------
+# Explicitly make sure Keras does not use JIT for this model.
+# ------------------------------------------------------------
+
+try:
+    vision_model.jit_compile = False
+except Exception:
+    pass
+
+# ------------------------------------------------------------
+# Scikit-learn models
+# ------------------------------------------------------------
 
 tfidf_vectorizer = joblib.load(
     tfidf_path
@@ -102,8 +152,11 @@ classes = label_encoder.classes_
 
 IMAGE_SIZE = (224, 224)
 
+load_time = time.perf_counter() - load_start
+
 print("Models loaded successfully.")
 print("Number of classes:", len(classes))
+print(f"Model loading time: {load_time:.2f} seconds")
 print("==============================================")
 
 
@@ -139,25 +192,52 @@ def clean_text(text):
 
 def preprocess_image(image):
 
-    image = tf.convert_to_tensor(image)
+    image = tf.convert_to_tensor(
+        np.asarray(image)
+    )
 
-    # Remove alpha channel if present
+    # --------------------------------------------------------
+    # Make sure image has three channels.
+    # --------------------------------------------------------
+
+    if image.shape.rank == 2:
+        image = tf.stack(
+            [image, image, image],
+            axis=-1
+        )
+
     if image.shape[-1] == 4:
         image = image[..., :3]
+
+    # --------------------------------------------------------
+    # Resize
+    # --------------------------------------------------------
 
     image = tf.image.resize(
         image,
         IMAGE_SIZE
     )
 
+    # --------------------------------------------------------
+    # Convert to float32
+    # --------------------------------------------------------
+
     image = tf.cast(
         image,
         tf.float32
     )
 
+    # --------------------------------------------------------
+    # MobileNetV2 preprocessing
+    # --------------------------------------------------------
+
     image = tf.keras.applications.mobilenet_v2.preprocess_input(
         image
     )
+
+    # --------------------------------------------------------
+    # Add batch dimension
+    # --------------------------------------------------------
 
     image = tf.expand_dims(
         image,
@@ -170,21 +250,82 @@ def preprocess_image(image):
 # ============================================================
 # VISION PREDICTION
 # ============================================================
+#
+# IMPORTANT:
+#
+# DO NOT use:
+#
+#     vision_model.predict(...)
+#
+# Keras .predict() can create a compiled prediction function,
+# which was the source of the very slow CPU XLA compilation
+# observed on Render.
+#
+# Instead we directly call:
+#
+#     vision_model(processed_image, training=False)
+#
+# This keeps inference simple and avoids the problematic
+# prediction-function compilation path.
+# ============================================================
 
 def vision_predict(image):
 
+    total_start = time.perf_counter()
+
+    print("")
     print("Vision Agent: preprocessing image...")
+
+    preprocess_start = time.perf_counter()
 
     processed_image = preprocess_image(
         image
     )
 
-    print("Vision Agent: running MobileNetV2...")
-
-    prediction = vision_model.predict(
-        processed_image,
-        verbose=0
+    preprocess_time = (
+        time.perf_counter()
+        -
+        preprocess_start
     )
+
+    print(
+        f"Vision Agent: preprocessing complete "
+        f"({preprocess_time:.3f}s)"
+    )
+
+    # --------------------------------------------------------
+    # Direct eager model inference
+    # --------------------------------------------------------
+
+    print(
+        "Vision Agent: running MobileNetV2 "
+        "without Keras predict()..."
+    )
+
+    inference_start = time.perf_counter()
+
+    # Explicit direct call.
+    #
+    # This is intentionally NOT vision_model.predict().
+    prediction = vision_model(
+        processed_image,
+        training=False
+    )
+
+    inference_time = (
+        time.perf_counter()
+        -
+        inference_start
+    )
+
+    print(
+        f"Vision Agent: MobileNetV2 inference complete "
+        f"({inference_time:.3f}s)"
+    )
+
+    # --------------------------------------------------------
+    # Convert TensorFlow output to NumPy
+    # --------------------------------------------------------
 
     probabilities = np.asarray(
         prediction
@@ -202,10 +343,20 @@ def vision_predict(image):
         probabilities[predicted_index]
     )
 
+    total_time = (
+        time.perf_counter()
+        -
+        total_start
+    )
+
     print(
         "Vision Agent:",
         predicted_disease,
         f"({confidence * 100:.2f}%)"
+    )
+
+    print(
+        f"Vision Agent total time: {total_time:.3f}s"
     )
 
     return {
@@ -222,18 +373,27 @@ def vision_predict(image):
 
 def text_predict(symptoms):
 
+    total_start = time.perf_counter()
+
     print("Text Agent: processing symptoms...")
 
     cleaned_text = clean_text(
         symptoms
     )
 
-    # Handle empty text safely
+    # --------------------------------------------------------
+    # Empty text
+    # --------------------------------------------------------
+
     if not cleaned_text:
 
         probabilities = np.zeros(
             len(classes),
             dtype=np.float32
+        )
+
+        print(
+            "Text Agent: no symptoms supplied."
         )
 
         return {
@@ -243,13 +403,47 @@ def text_predict(symptoms):
             "probabilities": probabilities
         }
 
+    # --------------------------------------------------------
+    # TF-IDF
+    # --------------------------------------------------------
+
+    tfidf_start = time.perf_counter()
+
     text_features = tfidf_vectorizer.transform(
         [cleaned_text]
     )
 
+    tfidf_time = (
+        time.perf_counter()
+        -
+        tfidf_start
+    )
+
+    print(
+        f"Text Agent: TF-IDF complete "
+        f"({tfidf_time:.3f}s)"
+    )
+
+    # --------------------------------------------------------
+    # SVM probability prediction
+    # --------------------------------------------------------
+
+    svm_start = time.perf_counter()
+
     probabilities = calibrated_svm.predict_proba(
         text_features
     )[0]
+
+    svm_time = (
+        time.perf_counter()
+        -
+        svm_start
+    )
+
+    print(
+        f"Text Agent: SVM prediction complete "
+        f"({svm_time:.3f}s)"
+    )
 
     predicted_index = int(
         np.argmax(probabilities)
@@ -263,10 +457,20 @@ def text_predict(symptoms):
         probabilities[predicted_index]
     )
 
+    total_time = (
+        time.perf_counter()
+        -
+        total_start
+    )
+
     print(
         "Text Agent:",
         predicted_disease,
         f"({confidence * 100:.2f}%)"
+    )
+
+    print(
+        f"Text Agent total time: {total_time:.3f}s"
     )
 
     return {
@@ -316,10 +520,6 @@ def get_top_predictions(
 
 # ============================================================
 # FUSION
-#
-# IMPORTANT:
-# This function receives already-computed predictions.
-# It DOES NOT run the models again.
 # ============================================================
 
 def fusion_predict(
@@ -329,15 +529,36 @@ def fusion_predict(
     text_weight=0.5
 ):
 
-    print("Fusion Agent: combining predictions...")
+    print(
+        "Fusion Agent: combining predictions..."
+    )
 
     vision_probabilities = np.asarray(
-        vision_result["probabilities"]
+        vision_result["probabilities"],
+        dtype=np.float32
     )
 
     text_probabilities = np.asarray(
-        text_result["probabilities"]
+        text_result["probabilities"],
+        dtype=np.float32
     )
+
+    # --------------------------------------------------------
+    # Safety check
+    # --------------------------------------------------------
+
+    if len(vision_probabilities) != len(
+        text_probabilities
+    ):
+
+        raise ValueError(
+            "Vision and text probability vectors "
+            "have different lengths."
+        )
+
+    # --------------------------------------------------------
+    # Fusion
+    # --------------------------------------------------------
 
     final_probabilities = (
         vision_weight * vision_probabilities
@@ -438,13 +659,15 @@ def fusion_predict(
 
 
 # ============================================================
-# WEB PREDICTION FUNCTION
+# WEB PREDICTION
 # ============================================================
 
 def web_predict(
     image,
     symptoms
 ):
+
+    total_start = time.perf_counter()
 
     print("")
     print("==============================================")
@@ -476,13 +699,11 @@ def web_predict(
     if symptoms is None:
         symptoms = ""
 
-    symptoms = symptoms.strip()
+    symptoms = str(symptoms).strip()
 
-    # --------------------------------------------------------
-    # VISION PREDICTION
-    #
-    # RUN ONLY ONCE
-    # --------------------------------------------------------
+    # ========================================================
+    # STEP 1 — VISION
+    # ========================================================
 
     print("")
     print("STEP 1: Vision Agent")
@@ -499,9 +720,9 @@ def web_predict(
         "confidence"
     ]
 
-    # --------------------------------------------------------
-    # TEXT PREDICTION
-    # --------------------------------------------------------
+    # ========================================================
+    # STEP 2 — TEXT
+    # ========================================================
 
     if symptoms:
 
@@ -520,14 +741,9 @@ def web_predict(
             "confidence"
         ]
 
-        # ----------------------------------------------------
-        # FUSION
-        #
-        # IMPORTANT:
-        # Use existing results.
-        # Do NOT call vision_predict() or text_predict()
-        # again.
-        # ----------------------------------------------------
+        # ====================================================
+        # STEP 3 — FUSION
+        # ====================================================
 
         print("")
         print("STEP 3: Fusion Agent")
@@ -561,9 +777,9 @@ def web_predict(
             "final_probabilities"
         ]
 
-    # --------------------------------------------------------
+    # ========================================================
     # IMAGE ONLY
-    # --------------------------------------------------------
+    # ========================================================
 
     else:
 
@@ -581,15 +797,17 @@ def web_predict(
 
         agents_agree = False
 
-        verification_needed = False
+        verification_needed = (
+            final_confidence < 0.70
+        )
 
         final_probabilities = vision_result[
             "probabilities"
         ]
 
-    # --------------------------------------------------------
-    # TOP 3 PREDICTIONS
-    # --------------------------------------------------------
+    # ========================================================
+    # STEP 4 — TOP 3
+    # ========================================================
 
     print("")
     print("STEP 4: Generating Top-3 predictions")
@@ -611,9 +829,9 @@ def web_predict(
             f" — {item['confidence'] * 100:.2f}%\n\n"
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # AGREEMENT STATUS
-    # --------------------------------------------------------
+    # ========================================================
 
     if symptoms:
 
@@ -635,9 +853,9 @@ def web_predict(
             "🔵 **Vision Agent Only**"
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # VERIFICATION STATUS
-    # --------------------------------------------------------
+    # ========================================================
 
     if verification_needed:
 
@@ -651,9 +869,9 @@ def web_predict(
             "✅ **No Further Verification Required**"
         )
 
-    # --------------------------------------------------------
+    # ========================================================
     # RESULT CARD
-    # --------------------------------------------------------
+    # ========================================================
 
     result_card = f"""
 # 🌿 {final_disease}
@@ -666,9 +884,9 @@ def web_predict(
 {verification_text}
 """
 
-    # --------------------------------------------------------
+    # ========================================================
     # VISION CARD
-    # --------------------------------------------------------
+    # ========================================================
 
     vision_card = f"""
 ### 👁️ Vision Agent
@@ -678,9 +896,9 @@ def web_predict(
 **Confidence:** {vision_confidence * 100:.2f}%
 """
 
-    # --------------------------------------------------------
+    # ========================================================
     # TEXT + FUSION CARDS
-    # --------------------------------------------------------
+    # ========================================================
 
     if symptoms:
 
@@ -720,13 +938,21 @@ No symptoms were provided.
 Image-only prediction was used.
 """
 
-    # --------------------------------------------------------
+    # ========================================================
     # COMPLETE
-    # --------------------------------------------------------
+    # ========================================================
+
+    total_time = (
+        time.perf_counter()
+        -
+        total_start
+    )
 
     print("")
     print("==============================================")
-    print("ANALYSIS COMPLETE")
+    print(
+        f"ANALYSIS COMPLETE — {total_time:.3f} seconds"
+    )
     print("==============================================")
 
     return (
@@ -765,20 +991,11 @@ def clear_interface():
 
 custom_css = """
 
-/* ----------------------------------------------------------
-   MAIN PAGE
----------------------------------------------------------- */
-
 .gradio-container {
     max-width: 1250px !important;
     margin: auto !important;
     padding: 0 25px 35px 25px !important;
 }
-
-
-/* ----------------------------------------------------------
-   HERO SECTION
----------------------------------------------------------- */
 
 .hero {
     text-align: center;
@@ -816,26 +1033,15 @@ custom_css = """
     opacity: 0.90;
 }
 
-
-/* ----------------------------------------------------------
-   SECTION HEADERS
----------------------------------------------------------- */
-
 .section-title {
     font-size: 25px;
     font-weight: 750;
     margin: 15px 0 12px 0;
 }
 
-
-/* ----------------------------------------------------------
-   INPUT CARDS
----------------------------------------------------------- */
-
 .input-card {
     border-radius: 20px !important;
     padding: 18px !important;
-
     border: 1px solid #d1d5db !important;
 
     box-shadow:
@@ -846,26 +1052,14 @@ custom_css = """
     border-radius: 12px !important;
 }
 
-
-/* ----------------------------------------------------------
-   IMAGE UPLOAD
----------------------------------------------------------- */
-
 .image-upload {
     border-radius: 18px !important;
     overflow: hidden !important;
 }
 
-
-/* ----------------------------------------------------------
-   BUTTONS
----------------------------------------------------------- */
-
 .analyze-button {
     min-height: 56px !important;
-
     border-radius: 14px !important;
-
     font-size: 18px !important;
     font-weight: 750 !important;
 
@@ -879,16 +1073,9 @@ custom_css = """
     font-size: 16px !important;
 }
 
-
-/* ----------------------------------------------------------
-   RESULT AREA
----------------------------------------------------------- */
-
 .result-card {
     border-radius: 22px !important;
-
     padding: 28px !important;
-
     border: 1px solid #d1d5db !important;
 
     box-shadow:
@@ -901,73 +1088,36 @@ custom_css = """
     font-size: 34px !important;
 }
 
-
-/* ----------------------------------------------------------
-   AGENT CARDS
----------------------------------------------------------- */
-
 .agent-card {
     border-radius: 18px !important;
-
     padding: 20px !important;
-
     border: 1px solid #d1d5db !important;
 
     box-shadow:
         0 5px 18px rgba(0, 0, 0, 0.05);
 }
 
-
-/* ----------------------------------------------------------
-   TOP PREDICTIONS
----------------------------------------------------------- */
-
 .top-card {
     border-radius: 18px !important;
-
     padding: 22px !important;
-
     border: 1px solid #d1d5db !important;
 }
 
-
-/* ----------------------------------------------------------
-   INFO BOX
----------------------------------------------------------- */
-
 .info-box {
     border-radius: 18px;
-
     padding: 22px;
-
     margin: 25px 0;
-
     border: 1px solid #d1d5db;
 }
 
-
-/* ----------------------------------------------------------
-   FOOTER
----------------------------------------------------------- */
-
 .footer {
     text-align: center;
-
     margin-top: 40px;
-
     padding: 25px 10px;
-
     font-size: 13px;
-
     opacity: 0.75;
-
     border-top: 1px solid #d1d5db;
 }
-
-
-/* ----------------------------------------------------------
-   MOBILE
----------------------------------------------------------- */
 
 @media (max-width: 700px) {
 
@@ -996,13 +1146,11 @@ custom_css = """
 
 
 # ============================================================
-# BUILD PROFESSIONAL INTERFACE
+# BUILD INTERFACE
 # ============================================================
 
 with gr.Blocks(
-    title="Plant Disease Detection System",
-    css=custom_css,
-    theme=gr.themes.Soft()
+    title="Plant Disease Detection System"
 ) as demo:
 
     # --------------------------------------------------------
@@ -1027,7 +1175,6 @@ with gr.Blocks(
     </div>
     """)
 
-
     # --------------------------------------------------------
     # INPUT SECTION
     # --------------------------------------------------------
@@ -1039,10 +1186,6 @@ with gr.Blocks(
     """)
 
     with gr.Row():
-
-        # ----------------------------------------------------
-        # IMAGE
-        # ----------------------------------------------------
 
         with gr.Column(
             scale=1,
@@ -1062,10 +1205,6 @@ with gr.Blocks(
             gr.Markdown(
                 "Upload a clear image of the affected leaf."
             )
-
-        # ----------------------------------------------------
-        # SYMPTOMS
-        # ----------------------------------------------------
 
         with gr.Column(
             scale=1,
@@ -1096,9 +1235,8 @@ with gr.Blocks(
             • Drying or discoloration
             """)
 
-
     # --------------------------------------------------------
-    # ACTION BUTTONS
+    # BUTTONS
     # --------------------------------------------------------
 
     with gr.Row():
@@ -1115,7 +1253,6 @@ with gr.Blocks(
             elem_classes=["clear-button"]
         )
 
-
     # --------------------------------------------------------
     # RESULTS
     # --------------------------------------------------------
@@ -1130,7 +1267,6 @@ with gr.Blocks(
         visible=True,
         elem_classes=["result-card"]
     )
-
 
     # --------------------------------------------------------
     # AGENT RESULTS
@@ -1148,12 +1284,10 @@ with gr.Blocks(
             elem_classes=["agent-card"]
         )
 
-
     fusion_output = gr.Markdown(
         visible=True,
         elem_classes=["agent-card"]
     )
-
 
     # --------------------------------------------------------
     # TOP 3
@@ -1163,7 +1297,6 @@ with gr.Blocks(
         visible=True,
         elem_classes=["top-card"]
     )
-
 
     # --------------------------------------------------------
     # STATUS
@@ -1180,7 +1313,6 @@ with gr.Blocks(
             visible=True,
             elem_classes=["agent-card"]
         )
-
 
     # --------------------------------------------------------
     # INFORMATION
@@ -1204,7 +1336,6 @@ with gr.Blocks(
 
     </div>
     """)
-
 
     # --------------------------------------------------------
     # FOOTER
@@ -1230,9 +1361,8 @@ with gr.Blocks(
     </div>
     """)
 
-
     # --------------------------------------------------------
-    # BUTTON EVENTS
+    # ANALYZE EVENT
     # --------------------------------------------------------
 
     predict_button.click(
@@ -1252,6 +1382,9 @@ with gr.Blocks(
         ]
     )
 
+    # --------------------------------------------------------
+    # CLEAR EVENT
+    # --------------------------------------------------------
 
     clear_button.click(
         fn=clear_interface,
@@ -1284,5 +1417,7 @@ if __name__ == "__main__":
 
     demo.launch(
         server_name=RENDER_HOST,
-        server_port=RENDER_PORT
+        server_port=RENDER_PORT,
+        css=custom_css,
+        theme=gr.themes.Soft()
     )
