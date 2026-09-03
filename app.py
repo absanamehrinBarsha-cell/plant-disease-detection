@@ -1421,3 +1421,288 @@ if __name__ == "__main__":
         css=custom_css,
         theme=gr.themes.Soft()
     )
+classes = label_encoder.classes_
+# ============================================================
+# USER-FRIENDLY DISEASE INFORMATION
+# ============================================================
+
+DISEASE_INFO = {
+
+    "Bacterial Spot": {
+        "what_is_it": "A bacterial disease that causes dark spots and damaged areas on leaves.",
+        "why_happens": "It can spread through infected plant material, splashing water, and wet conditions.",
+        "what_to_do": [
+            "Remove badly affected leaves.",
+            "Avoid splashing water onto the leaves.",
+            "Keep good air circulation around the plant.",
+            "Remove infected plant material from the growing area."
+        ],
+        "prevention": [
+            "Keep leaves as dry as possible.",
+            "Avoid working with plants when they are wet.",
+            "Use clean gardening tools."
+        ]
+    },
+
+    "Black Rot": {
+        "what_is_it": "A plant disease that can cause dark, damaged areas on leaves and other plant parts.",
+        "why_happens": "It can spread through infected plant material and is encouraged by warm, wet conditions.",
+        "what_to_do": [
+            "Remove affected leaves and plant material.",
+            "Keep the plant area clean.",
+            "Avoid unnecessary overhead watering.",
+            "Monitor nearby plants for similar symptoms."
+        ],
+        "prevention": [
+            "Remove infected plant debris.",
+            "Improve air circulation.",
+            "Avoid keeping foliage continuously wet."
+        ]
+    },
+
+    "Early Blight": {
+        "what_is_it": "A common fungal disease that causes dark spots and damaged areas on leaves.",
+        "why_happens": "The disease is encouraged by moisture, warm conditions, and poor air circulation.",
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Water near the soil instead of wetting the leaves.",
+            "Improve air circulation around plants.",
+            "Remove infected plant debris."
+        ],
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Give plants enough space for air movement.",
+            "Clean up fallen infected leaves."
+        ]
+    },
+
+    "Esca Black Measles": {
+        "what_is_it": "A serious disease associated with grapevines that can affect leaves and fruit.",
+        "why_happens": "It is associated with fungal infections that can enter and spread through damaged plant tissues.",
+        "what_to_do": [
+            "Remove and manage severely affected plant material.",
+            "Inspect the plant regularly for worsening symptoms.",
+            "Avoid unnecessary injuries to the plant.",
+            "Seek advice from a local agricultural specialist for severe cases."
+        ],
+        "prevention": [
+            "Use healthy planting material.",
+            "Protect pruning wounds where appropriate.",
+            "Maintain good vineyard sanitation."
+        ]
+    },
+
+    "Healthy": {
+        "what_is_it": "The plant image does not show clear signs of the diseases included in this system.",
+        "why_happens": "No obvious disease symptoms were identified from the submitted image.",
+        "what_to_do": [
+            "Continue normal plant care.",
+            "Monitor the plant regularly.",
+            "Check new leaves for changes in color, spots, or damage."
+        ],
+        "prevention": [
+            "Provide suitable water and growing conditions.",
+            "Keep the growing area clean.",
+            "Regularly inspect plants for early symptoms."
+        ]
+    },
+
+    "Huanglongbing": {
+        "what_is_it": "Huanglongbing, also called citrus greening, is a serious disease affecting citrus plants.",
+        "why_happens": "It is caused by bacteria associated with citrus greening and is spread by insect vectors.",
+        "what_to_do": [
+            "Inspect the plant for additional symptoms.",
+            "Remove or manage affected plants according to local agricultural guidance.",
+            "Control insect vectors using appropriate local recommendations.",
+            "Consult an agricultural specialist for confirmation."
+        ],
+        "prevention": [
+            "Use healthy planting material.",
+            "Monitor for insect vectors.",
+            "Follow local citrus disease-management recommendations."
+        ]
+    },
+
+    "Late Blight": {
+        "what_is_it": "A destructive disease that can cause dark, water-soaked-looking damage on leaves and other plant parts.",
+        "why_happens": "It spreads more easily during cool, wet, and humid conditions.",
+        "what_to_do": [
+            "Remove severely affected plant material.",
+            "Avoid wetting the leaves during watering.",
+            "Improve air circulation.",
+            "Act quickly if symptoms are spreading."
+        ],
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Avoid overcrowding plants.",
+            "Regularly inspect plants during humid or wet weather."
+        ]
+    },
+
+    "Leaf Blight": {
+        "what_is_it": "A condition in which areas of the leaf become damaged, discolored, and eventually dry out.",
+        "why_happens": "Leaf blight can be associated with infectious organisms and favorable environmental conditions such as prolonged moisture.",
+        "what_to_do": [
+            "Remove severely damaged leaves.",
+            "Keep foliage dry when possible.",
+            "Improve air circulation.",
+            "Monitor the plant for spreading symptoms."
+        ],
+        "prevention": [
+            "Avoid prolonged leaf wetness.",
+            "Remove infected plant debris.",
+            "Keep plants adequately spaced."
+        ]
+    },
+
+    "Leaf Mold": {
+        "what_is_it": "A fungal disease that can produce yellowing on the upper leaf surface and mold-like growth on the underside.",
+        "why_happens": "It is encouraged by high humidity and prolonged moisture around the leaves.",
+        "what_to_do": [
+            "Remove badly affected leaves.",
+            "Improve ventilation around the plant.",
+            "Reduce excessive humidity where possible.",
+            "Avoid unnecessary wetting of leaves."
+        ],
+        "prevention": [
+            "Improve air circulation.",
+            "Avoid excessive humidity.",
+            "Keep foliage dry when possible."
+        ]
+    },
+
+    "Leaf Scorch": {
+        "what_is_it": "Leaf scorch appears as dry, brown, or damaged areas along leaf edges or surfaces.",
+        "why_happens": "It can be associated with environmental stress, water imbalance, heat, or other growing conditions.",
+        "what_to_do": [
+            "Check whether the plant is receiving appropriate water.",
+            "Protect plants from excessive environmental stress where possible.",
+            "Inspect the plant for additional symptoms.",
+            "Maintain suitable growing conditions."
+        ],
+        "prevention": [
+            "Maintain consistent appropriate watering.",
+            "Avoid severe environmental stress.",
+            "Monitor plants during very hot or dry conditions."
+        ]
+    },
+
+    "Powdery Mildew": {
+        "what_is_it": "A fungal disease that often appears as a white, powder-like coating on leaves.",
+        "why_happens": "It is favored by certain humid conditions and poor air circulation, although the leaf surface does not always need to remain wet.",
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Improve air circulation around the plant.",
+            "Avoid overcrowding.",
+            "Use an appropriate treatment recommended for the specific plant."
+        ],
+        "prevention": [
+            "Provide good air circulation.",
+            "Avoid overcrowding plants.",
+            "Monitor new growth regularly."
+        ]
+    },
+
+    "Septoria Leaf Spot": {
+        "what_is_it": "A fungal leaf disease that produces small spots on leaves and can cause affected leaves to decline.",
+        "why_happens": "It spreads more easily when leaves remain wet and infected plant debris is present.",
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Remove fallen infected leaves.",
+            "Water near the soil instead of over the foliage.",
+            "Improve air circulation."
+        ],
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Clean up infected plant debris.",
+            "Avoid overcrowding plants."
+        ]
+    },
+
+    "Spider Mite": {
+        "what_is_it": "Spider mites are tiny pests that feed on plant tissues and can cause yellowing, speckling, and leaf damage.",
+        "why_happens": "They can increase rapidly during hot and dry conditions.",
+        "what_to_do": [
+            "Inspect the undersides of leaves.",
+            "Separate heavily affected plants when appropriate.",
+            "Wash plant surfaces with suitable water pressure when appropriate.",
+            "Use a pest-management treatment suitable for the plant if needed."
+        ],
+        "prevention": [
+            "Regularly inspect leaves.",
+            "Avoid severe plant stress.",
+            "Maintain appropriate growing conditions."
+        ]
+    },
+
+    "TYLCV": {
+        "what_is_it": "TYLCV stands for Tomato Yellow Leaf Curl Virus, a viral disease that can cause leaf curling and yellowing.",
+        "why_happens": "The virus is commonly spread by whiteflies feeding on infected plants.",
+        "what_to_do": [
+            "Remove severely affected plants when appropriate.",
+            "Control whiteflies using suitable local pest-management practices.",
+            "Remove nearby infected plant material.",
+            "Consult an agricultural specialist for severe outbreaks."
+        ],
+        "prevention": [
+            "Monitor plants for whiteflies.",
+            "Use healthy planting material.",
+            "Control insect vectors appropriately."
+        ]
+    },
+
+    "Target Spot": {
+        "what_is_it": "A fungal disease that can cause circular spots on leaves, sometimes with ring-like patterns.",
+        "why_happens": "It is encouraged by warm, humid conditions and prolonged leaf wetness.",
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Avoid overhead watering.",
+            "Improve air circulation.",
+            "Remove infected plant debris."
+        ],
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Provide adequate spacing between plants.",
+            "Clean up infected leaves and debris."
+        ]
+    },
+
+    "Tomato Mosaic Virus": {
+        "what_is_it": "A viral disease that can cause mottled or mosaic-like patterns, distorted growth, and reduced plant health.",
+        "why_happens": "The virus can spread through infected plant material and contaminated hands or tools.",
+        "what_to_do": [
+            "Remove severely affected plants when appropriate.",
+            "Clean tools after handling affected plants.",
+            "Avoid handling healthy plants immediately after affected plants.",
+            "Use healthy planting material."
+        ],
+        "prevention": [
+            "Disinfect gardening tools.",
+            "Use healthy seeds or planting material.",
+            "Remove infected plant material promptly."
+        ]
+    }
+}
+
+
+def get_disease_info(disease):
+    """Return user-friendly information for the detected disease."""
+
+    return DISEASE_INFO.get(
+        disease,
+        {
+            "what_is_it": "The system detected a possible plant health problem.",
+            "why_happens": "The exact cause cannot be determined from the prediction alone.",
+            "what_to_do": [
+                "Inspect the plant carefully.",
+                "Remove severely damaged parts where appropriate.",
+                "Monitor the plant for changes.",
+                "Consult a local agricultural specialist for confirmation."
+            ],
+            "prevention": [
+                "Keep the growing area clean.",
+                "Provide suitable growing conditions.",
+                "Monitor plants regularly."
+            ]
+        }
+    )
