@@ -3,23 +3,11 @@ import os
 # ============================================================
 # RENDER / TENSORFLOW CPU CONFIGURATION
 # ============================================================
-#
-# IMPORTANT:
-# These environment variables MUST be set before importing
-# TensorFlow.
-#
-# The Render CPU was previously spending ~2-3 minutes compiling
-# an XLA inference module. We avoid Keras .predict() below and
-# explicitly use direct eager inference instead.
-# ============================================================
 
 os.environ["TF_XLA_FLAGS"] = "--tf_xla_auto_jit=0"
 os.environ["OMP_NUM_THREADS"] = "2"
 os.environ["TF_NUM_INTRAOP_THREADS"] = "2"
 os.environ["TF_NUM_INTEROP_THREADS"] = "2"
-
-# Do NOT set XLA_FLAGS to a value that merely changes XLA
-# threading. We want XLA/JIT disabled rather than configured.
 
 import re
 import time
@@ -107,26 +95,17 @@ load_start = time.perf_counter()
 # ------------------------------------------------------------
 # MobileNetV2
 # ------------------------------------------------------------
-#
-# compile=False is intentional.
-#
-# This application performs inference only. We do not need the
-# training/compile configuration from the saved model.
-# ------------------------------------------------------------
 
 vision_model = tf.keras.models.load_model(
     vision_path,
     compile=False
 )
 
-# ------------------------------------------------------------
-# Explicitly make sure Keras does not use JIT for this model.
-# ------------------------------------------------------------
-
 try:
     vision_model.jit_compile = False
 except Exception:
     pass
+
 
 # ------------------------------------------------------------
 # Scikit-learn models
@@ -197,16 +176,18 @@ def preprocess_image(image):
     )
 
     # --------------------------------------------------------
-    # Make sure image has three channels.
+    # Make sure image has three channels
     # --------------------------------------------------------
 
     if image.shape.rank == 2:
+
         image = tf.stack(
             [image, image, image],
             axis=-1
         )
 
     if image.shape[-1] == 4:
+
         image = image[..., :3]
 
     # --------------------------------------------------------
@@ -251,22 +232,8 @@ def preprocess_image(image):
 # VISION PREDICTION
 # ============================================================
 #
-# IMPORTANT:
-#
-# DO NOT use:
-#
-#     vision_model.predict(...)
-#
-# Keras .predict() can create a compiled prediction function,
-# which was the source of the very slow CPU XLA compilation
-# observed on Render.
-#
-# Instead we directly call:
-#
-#     vision_model(processed_image, training=False)
-#
-# This keeps inference simple and avoids the problematic
-# prediction-function compilation path.
+# Direct eager inference is intentionally used instead of
+# vision_model.predict() to avoid slow XLA compilation on Render.
 # ============================================================
 
 def vision_predict(image):
@@ -274,7 +241,7 @@ def vision_predict(image):
     total_start = time.perf_counter()
 
     print("")
-    print("Vision Agent: preprocessing image...")
+    print("Image analysis: preprocessing image...")
 
     preprocess_start = time.perf_counter()
 
@@ -289,7 +256,7 @@ def vision_predict(image):
     )
 
     print(
-        f"Vision Agent: preprocessing complete "
+        f"Image preprocessing complete "
         f"({preprocess_time:.3f}s)"
     )
 
@@ -298,15 +265,11 @@ def vision_predict(image):
     # --------------------------------------------------------
 
     print(
-        "Vision Agent: running MobileNetV2 "
-        "without Keras predict()..."
+        "Running MobileNetV2 using direct inference..."
     )
 
     inference_start = time.perf_counter()
 
-    # Explicit direct call.
-    #
-    # This is intentionally NOT vision_model.predict().
     prediction = vision_model(
         processed_image,
         training=False
@@ -319,12 +282,12 @@ def vision_predict(image):
     )
 
     print(
-        f"Vision Agent: MobileNetV2 inference complete "
+        f"Image analysis complete "
         f"({inference_time:.3f}s)"
     )
 
     # --------------------------------------------------------
-    # Convert TensorFlow output to NumPy
+    # Convert output to NumPy
     # --------------------------------------------------------
 
     probabilities = np.asarray(
@@ -350,13 +313,13 @@ def vision_predict(image):
     )
 
     print(
-        "Vision Agent:",
+        "Image prediction:",
         predicted_disease,
         f"({confidence * 100:.2f}%)"
     )
 
     print(
-        f"Vision Agent total time: {total_time:.3f}s"
+        f"Image analysis total time: {total_time:.3f}s"
     )
 
     return {
@@ -375,7 +338,7 @@ def text_predict(symptoms):
 
     total_start = time.perf_counter()
 
-    print("Text Agent: processing symptoms...")
+    print("Processing symptom description...")
 
     cleaned_text = clean_text(
         symptoms
@@ -393,7 +356,7 @@ def text_predict(symptoms):
         )
 
         print(
-            "Text Agent: no symptoms supplied."
+            "No symptoms supplied."
         )
 
         return {
@@ -420,7 +383,7 @@ def text_predict(symptoms):
     )
 
     print(
-        f"Text Agent: TF-IDF complete "
+        f"Symptom processing complete "
         f"({tfidf_time:.3f}s)"
     )
 
@@ -441,7 +404,7 @@ def text_predict(symptoms):
     )
 
     print(
-        f"Text Agent: SVM prediction complete "
+        f"Symptom prediction complete "
         f"({svm_time:.3f}s)"
     )
 
@@ -464,13 +427,13 @@ def text_predict(symptoms):
     )
 
     print(
-        "Text Agent:",
+        "Symptom prediction:",
         predicted_disease,
         f"({confidence * 100:.2f}%)"
     )
 
     print(
-        f"Text Agent total time: {total_time:.3f}s"
+        f"Symptom analysis total time: {total_time:.3f}s"
     )
 
     return {
@@ -482,7 +445,7 @@ def text_predict(symptoms):
 
 
 # ============================================================
-# TOP-3 PREDICTIONS
+# TOP PREDICTIONS
 # ============================================================
 
 def get_top_predictions(
@@ -530,7 +493,7 @@ def fusion_predict(
 ):
 
     print(
-        "Fusion Agent: combining predictions..."
+        "Combining image and symptom predictions..."
     )
 
     vision_probabilities = np.asarray(
@@ -552,12 +515,12 @@ def fusion_predict(
     ):
 
         raise ValueError(
-            "Vision and text probability vectors "
+            "Image and symptom probability vectors "
             "have different lengths."
         )
 
     # --------------------------------------------------------
-    # Fusion
+    # Combine probabilities
     # --------------------------------------------------------
 
     final_probabilities = (
@@ -596,13 +559,11 @@ def fusion_predict(
 
         if final_confidence >= 0.70:
 
-            decision = "Both Agents Agree"
+            decision = "Both predictions agree"
 
         else:
 
-            decision = (
-                "Both Agents Agree - Low Confidence"
-            )
+            decision = "Both predictions agree with lower certainty"
 
     else:
 
@@ -612,14 +573,14 @@ def fusion_predict(
             text_result["confidence"]
         ):
 
-            decision = "Vision Agent Preferred"
+            decision = "Image prediction preferred"
 
         else:
 
-            decision = "Text Agent Preferred"
+            decision = "Symptom prediction preferred"
 
     print(
-        "Fusion Agent:",
+        "Combined prediction:",
         final_disease,
         f"({final_confidence * 100:.2f}%)"
     )
@@ -659,7 +620,412 @@ def fusion_predict(
 
 
 # ============================================================
-# WEB PREDICTION
+# USER-FRIENDLY DISEASE INFORMATION
+# ============================================================
+
+DISEASE_INFO = {
+
+    "Bacterial Spot": {
+
+        "what_is_it":
+            "A bacterial disease that causes dark spots and damaged areas on leaves.",
+
+        "why_happens":
+            "It can spread through infected plant material, splashing water, and wet conditions.",
+
+        "what_to_do": [
+            "Remove badly affected leaves.",
+            "Avoid splashing water onto the leaves.",
+            "Keep good air circulation around the plant.",
+            "Remove infected plant material from the growing area."
+        ],
+
+        "prevention": [
+            "Keep leaves as dry as possible.",
+            "Avoid working with plants when they are wet.",
+            "Use clean gardening tools."
+        ]
+    },
+
+
+    "Black Rot": {
+
+        "what_is_it":
+            "A plant disease that can cause dark, damaged areas on leaves and other plant parts.",
+
+        "why_happens":
+            "It can spread through infected plant material and is encouraged by warm, wet conditions.",
+
+        "what_to_do": [
+            "Remove affected leaves and plant material.",
+            "Keep the plant area clean.",
+            "Avoid unnecessary overhead watering.",
+            "Monitor nearby plants for similar symptoms."
+        ],
+
+        "prevention": [
+            "Remove infected plant debris.",
+            "Improve air circulation.",
+            "Avoid keeping foliage continuously wet."
+        ]
+    },
+
+
+    "Early Blight": {
+
+        "what_is_it":
+            "A common fungal disease that causes dark spots and damaged areas on leaves.",
+
+        "why_happens":
+            "The disease is encouraged by moisture, warm conditions, and poor air circulation.",
+
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Water near the soil instead of wetting the leaves.",
+            "Improve air circulation around plants.",
+            "Remove infected plant debris."
+        ],
+
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Give plants enough space for air movement.",
+            "Clean up fallen infected leaves."
+        ]
+    },
+
+
+    "Esca Black Measles": {
+
+        "what_is_it":
+            "A serious disease associated with grapevines that can affect leaves and fruit.",
+
+        "why_happens":
+            "It is associated with fungal infections that can enter and spread through damaged plant tissues.",
+
+        "what_to_do": [
+            "Remove and manage severely affected plant material.",
+            "Inspect the plant regularly for worsening symptoms.",
+            "Avoid unnecessary injuries to the plant.",
+            "Seek advice from a local agricultural specialist for severe cases."
+        ],
+
+        "prevention": [
+            "Use healthy planting material.",
+            "Protect pruning wounds where appropriate.",
+            "Maintain good vineyard sanitation."
+        ]
+    },
+
+
+    "Healthy": {
+
+        "what_is_it":
+            "The plant image does not show clear signs of the diseases included in this system.",
+
+        "why_happens":
+            "No obvious disease symptoms were identified from the submitted image.",
+
+        "what_to_do": [
+            "Continue normal plant care.",
+            "Monitor the plant regularly.",
+            "Check new leaves for changes in color, spots, or damage."
+        ],
+
+        "prevention": [
+            "Provide suitable water and growing conditions.",
+            "Keep the growing area clean.",
+            "Regularly inspect plants for early symptoms."
+        ]
+    },
+
+
+    "Huanglongbing": {
+
+        "what_is_it":
+            "Huanglongbing, also called citrus greening, is a serious disease affecting citrus plants.",
+
+        "why_happens":
+            "It is caused by bacteria associated with citrus greening and is spread by insect vectors.",
+
+        "what_to_do": [
+            "Inspect the plant for additional symptoms.",
+            "Remove or manage affected plants according to local agricultural guidance.",
+            "Control insect vectors using appropriate local recommendations.",
+            "Consult an agricultural specialist for confirmation."
+        ],
+
+        "prevention": [
+            "Use healthy planting material.",
+            "Monitor for insect vectors.",
+            "Follow local citrus disease-management recommendations."
+        ]
+    },
+
+
+    "Late Blight": {
+
+        "what_is_it":
+            "A destructive disease that can cause dark, water-soaked-looking damage on leaves and other plant parts.",
+
+        "why_happens":
+            "It spreads more easily during cool, wet, and humid conditions.",
+
+        "what_to_do": [
+            "Remove severely affected plant material.",
+            "Avoid wetting the leaves during watering.",
+            "Improve air circulation.",
+            "Act quickly if symptoms are spreading."
+        ],
+
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Avoid overcrowding plants.",
+            "Regularly inspect plants during humid or wet weather."
+        ]
+    },
+
+
+    "Leaf Blight": {
+
+        "what_is_it":
+            "A condition in which areas of the leaf become damaged, discolored, and eventually dry out.",
+
+        "why_happens":
+            "Leaf blight can be associated with infectious organisms and favorable environmental conditions such as prolonged moisture.",
+
+        "what_to_do": [
+            "Remove severely damaged leaves.",
+            "Keep foliage dry when possible.",
+            "Improve air circulation.",
+            "Monitor the plant for spreading symptoms."
+        ],
+
+        "prevention": [
+            "Avoid prolonged leaf wetness.",
+            "Remove infected plant debris.",
+            "Keep plants adequately spaced."
+        ]
+    },
+
+
+    "Leaf Mold": {
+
+        "what_is_it":
+            "A fungal disease that can produce yellowing on the upper leaf surface and mold-like growth on the underside.",
+
+        "why_happens":
+            "It is encouraged by high humidity and prolonged moisture around the leaves.",
+
+        "what_to_do": [
+            "Remove badly affected leaves.",
+            "Improve ventilation around the plant.",
+            "Reduce excessive humidity where possible.",
+            "Avoid unnecessary wetting of leaves."
+        ],
+
+        "prevention": [
+            "Improve air circulation.",
+            "Avoid excessive humidity.",
+            "Keep foliage dry when possible."
+        ]
+    },
+
+
+    "Leaf Scorch": {
+
+        "what_is_it":
+            "Leaf scorch appears as dry, brown, or damaged areas along leaf edges or surfaces.",
+
+        "why_happens":
+            "It can be associated with environmental stress, water imbalance, heat, or other growing conditions.",
+
+        "what_to_do": [
+            "Check whether the plant is receiving appropriate water.",
+            "Protect plants from excessive environmental stress where possible.",
+            "Inspect the plant for additional symptoms.",
+            "Maintain suitable growing conditions."
+        ],
+
+        "prevention": [
+            "Maintain consistent appropriate watering.",
+            "Avoid severe environmental stress.",
+            "Monitor plants during very hot or dry conditions."
+        ]
+    },
+
+
+    "Powdery Mildew": {
+
+        "what_is_it":
+            "A fungal disease that often appears as a white, powder-like coating on leaves.",
+
+        "why_happens":
+            "It is favored by certain humid conditions and poor air circulation, although the leaf surface does not always need to remain wet.",
+
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Improve air circulation around the plant.",
+            "Avoid overcrowding.",
+            "Use an appropriate treatment recommended for the specific plant."
+        ],
+
+        "prevention": [
+            "Provide good air circulation.",
+            "Avoid overcrowding plants.",
+            "Monitor new growth regularly."
+        ]
+    },
+
+
+    "Septoria Leaf Spot": {
+
+        "what_is_it":
+            "A fungal leaf disease that produces small spots on leaves and can cause affected leaves to decline.",
+
+        "why_happens":
+            "It spreads more easily when leaves remain wet and infected plant debris is present.",
+
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Remove fallen infected leaves.",
+            "Water near the soil instead of over the foliage.",
+            "Improve air circulation."
+        ],
+
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Clean up infected plant debris.",
+            "Avoid overcrowding plants."
+        ]
+    },
+
+
+    "Spider Mite": {
+
+        "what_is_it":
+            "Spider mites are tiny pests that feed on plant tissues and can cause yellowing, speckling, and leaf damage.",
+
+        "why_happens":
+            "They can increase rapidly during hot and dry conditions.",
+
+        "what_to_do": [
+            "Inspect the undersides of leaves.",
+            "Separate heavily affected plants when appropriate.",
+            "Wash plant surfaces with suitable water pressure when appropriate.",
+            "Use a pest-management treatment suitable for the plant if needed."
+        ],
+
+        "prevention": [
+            "Regularly inspect leaves.",
+            "Avoid severe plant stress.",
+            "Maintain appropriate growing conditions."
+        ]
+    },
+
+
+    "TYLCV": {
+
+        "what_is_it":
+            "TYLCV stands for Tomato Yellow Leaf Curl Virus, a viral disease that can cause leaf curling and yellowing.",
+
+        "why_happens":
+            "The virus is commonly spread by whiteflies feeding on infected plants.",
+
+        "what_to_do": [
+            "Remove severely affected plants when appropriate.",
+            "Control whiteflies using suitable local pest-management practices.",
+            "Remove nearby infected plant material.",
+            "Consult an agricultural specialist for severe outbreaks."
+        ],
+
+        "prevention": [
+            "Monitor plants for whiteflies.",
+            "Use healthy planting material.",
+            "Control insect vectors appropriately."
+        ]
+    },
+
+
+    "Target Spot": {
+
+        "what_is_it":
+            "A fungal disease that can cause circular spots on leaves, sometimes with ring-like patterns.",
+
+        "why_happens":
+            "It is encouraged by warm, humid conditions and prolonged leaf wetness.",
+
+        "what_to_do": [
+            "Remove severely affected leaves.",
+            "Avoid overhead watering.",
+            "Improve air circulation.",
+            "Remove infected plant debris."
+        ],
+
+        "prevention": [
+            "Keep foliage dry when possible.",
+            "Provide adequate spacing between plants.",
+            "Clean up infected leaves and debris."
+        ]
+    },
+
+
+    "Tomato Mosaic Virus": {
+
+        "what_is_it":
+            "A viral disease that can cause mottled or mosaic-like patterns, distorted growth, and reduced plant health.",
+
+        "why_happens":
+            "The virus can spread through infected plant material and contaminated hands or tools.",
+
+        "what_to_do": [
+            "Remove severely affected plants when appropriate.",
+            "Clean tools after handling affected plants.",
+            "Avoid handling healthy plants immediately after affected plants.",
+            "Use healthy planting material."
+        ],
+
+        "prevention": [
+            "Disinfect gardening tools.",
+            "Use healthy seeds or planting material.",
+            "Remove infected plant material promptly."
+        ]
+    }
+}
+
+
+# ============================================================
+# GET DISEASE INFORMATION
+# ============================================================
+
+def get_disease_info(disease):
+
+    return DISEASE_INFO.get(
+        disease,
+        {
+            "what_is_it":
+                "The system detected a possible plant health problem.",
+
+            "why_happens":
+                "The exact cause cannot be determined from the prediction alone.",
+
+            "what_to_do": [
+                "Inspect the plant carefully.",
+                "Remove severely damaged parts where appropriate.",
+                "Monitor the plant for changes.",
+                "Consult a local agricultural specialist if the problem continues."
+            ],
+
+            "prevention": [
+                "Keep the growing area clean.",
+                "Provide suitable growing conditions.",
+                "Monitor the plant regularly."
+            ]
+        }
+    )
+
+
+# ============================================================
+# USER-FRIENDLY WEB PREDICTION
 # ============================================================
 
 def web_predict(
@@ -680,14 +1046,8 @@ def web_predict(
 
     if image is None:
 
-        print("No image supplied.")
-
         return (
-            "⚠️ Please upload a leaf image.",
-            "",
-            "",
-            "",
-            "",
+            "⚠️ **Please upload a clear leaf image.**",
             "",
             ""
         )
@@ -702,51 +1062,31 @@ def web_predict(
     symptoms = str(symptoms).strip()
 
     # ========================================================
-    # STEP 1 — VISION
+    # IMAGE PREDICTION
     # ========================================================
 
     print("")
-    print("STEP 1: Vision Agent")
+    print("Analyzing leaf image...")
 
     vision_result = vision_predict(
         image
     )
 
-    vision_disease = vision_result[
-        "disease"
-    ]
-
-    vision_confidence = vision_result[
-        "confidence"
-    ]
-
     # ========================================================
-    # STEP 2 — TEXT
+    # COMBINE WITH SYMPTOMS
     # ========================================================
 
     if symptoms:
 
         print("")
-        print("STEP 2: Text Agent")
+        print("Analyzing described symptoms...")
 
         text_result = text_predict(
             symptoms
         )
 
-        text_disease = text_result[
-            "disease"
-        ]
-
-        text_confidence = text_result[
-            "confidence"
-        ]
-
-        # ====================================================
-        # STEP 3 — FUSION
-        # ====================================================
-
         print("")
-        print("STEP 3: Fusion Agent")
+        print("Combining available information...")
 
         fusion_result = fusion_predict(
             vision_result,
@@ -757,185 +1097,132 @@ def web_predict(
             "final_disease"
         ]
 
-        final_confidence = fusion_result[
-            "final_confidence"
-        ]
-
-        decision = fusion_result[
-            "decision"
-        ]
-
-        agents_agree = fusion_result[
-            "agents_agree"
-        ]
-
-        verification_needed = fusion_result[
-            "verification_needed"
-        ]
-
         final_probabilities = fusion_result[
             "final_probabilities"
         ]
 
-    # ========================================================
-    # IMAGE ONLY
-    # ========================================================
-
     else:
 
         print("")
-        print("No symptoms provided.")
-        print("Using Vision Agent only.")
+        print("No symptom description provided.")
+        print("Using image result.")
 
-        text_disease = "Not provided"
-        text_confidence = 0.0
-
-        final_disease = vision_disease
-        final_confidence = vision_confidence
-
-        decision = "Vision Agent Only"
-
-        agents_agree = False
-
-        verification_needed = (
-            final_confidence < 0.70
-        )
+        final_disease = vision_result[
+            "disease"
+        ]
 
         final_probabilities = vision_result[
             "probabilities"
         ]
 
     # ========================================================
-    # STEP 4 — TOP 3
+    # GET DISEASE INFORMATION
     # ========================================================
 
-    print("")
-    print("STEP 4: Generating Top-3 predictions")
+    disease_info = get_disease_info(
+        final_disease
+    )
+
+    # ========================================================
+    # MAIN DIAGNOSIS CARD
+    # ========================================================
+
+    diagnosis_card = f"""
+# 🌿 Diagnosis: {final_disease}
+
+---
+
+### ❓ What is it?
+
+{disease_info["what_is_it"]}
+
+---
+
+### 🔎 Why did this happen?
+
+{disease_info["why_happens"]}
+
+---
+
+### 🩺 What should you do?
+
+"""
+
+    for action in disease_info["what_to_do"]:
+
+        diagnosis_card += (
+            f"- {action}\n"
+        )
+
+    diagnosis_card += """
+
+---
+
+### 🛡️ How can you prevent it?
+
+"""
+
+    for prevention in disease_info["prevention"]:
+
+        diagnosis_card += (
+            f"- {prevention}\n"
+        )
+
+    diagnosis_card += """
+
+---
+
+### ⚠️ Important
+
+This is an AI-assisted prediction based on the
+submitted leaf image and symptoms. The result is
+not guaranteed to be a confirmed diagnosis.
+
+For serious, rapidly spreading, or uncertain
+plant problems, confirmation from a local
+agricultural specialist is recommended.
+"""
+
+    # ========================================================
+    # OTHER POSSIBLE RESULTS
+    # ========================================================
 
     top_predictions = get_top_predictions(
         final_probabilities,
         top_k=3
     )
 
-    top3_text = ""
+    other_results = ""
 
-    for rank, item in enumerate(
-        top_predictions,
-        1
-    ):
+    alternatives = []
 
-        top3_text += (
-            f"**{rank}. {item['disease']}**"
-            f" — {item['confidence'] * 100:.2f}%\n\n"
-        )
+    for item in top_predictions:
 
-    # ========================================================
-    # AGREEMENT STATUS
-    # ========================================================
+        if item["disease"] != final_disease:
 
-    if symptoms:
-
-        if agents_agree:
-
-            agreement_text = (
-                "🟢 **Both Agents Agree**"
+            alternatives.append(
+                item["disease"]
             )
 
-        else:
+    if alternatives:
 
-            agreement_text = (
-                "🟠 **Agents Disagree**"
+        other_results = """
+### 🔍 Other possible results
+
+The system also considered:
+
+"""
+
+        for disease in alternatives:
+
+            other_results += (
+                f"- **{disease}**\n"
             )
 
-    else:
+        other_results += """
 
-        agreement_text = (
-            "🔵 **Vision Agent Only**"
-        )
-
-    # ========================================================
-    # VERIFICATION STATUS
-    # ========================================================
-
-    if verification_needed:
-
-        verification_text = (
-            "⚠️ **Further Verification Recommended**"
-        )
-
-    else:
-
-        verification_text = (
-            "✅ **No Further Verification Required**"
-        )
-
-    # ========================================================
-    # RESULT CARD
-    # ========================================================
-
-    result_card = f"""
-# 🌿 {final_disease}
-
-### Final Confidence
-## {final_confidence * 100:.2f}%
-
-{agreement_text}
-
-{verification_text}
-"""
-
-    # ========================================================
-    # VISION CARD
-    # ========================================================
-
-    vision_card = f"""
-### 👁️ Vision Agent
-
-**Prediction:** {vision_disease}
-
-**Confidence:** {vision_confidence * 100:.2f}%
-"""
-
-    # ========================================================
-    # TEXT + FUSION CARDS
-    # ========================================================
-
-    if symptoms:
-
-        text_card = f"""
-### 📝 Text Agent
-
-**Prediction:** {text_disease}
-
-**Confidence:** {text_confidence * 100:.2f}%
-"""
-
-        fusion_card = f"""
-### 🔗 Fusion Decision
-
-**Decision:** {decision}
-
-**Final Prediction:** {final_disease}
-
-**Final Confidence:** {final_confidence * 100:.2f}%
-
-**Agents Agree:** {agents_agree}
-
-**Verification Needed:** {verification_needed}
-"""
-
-    else:
-
-        text_card = """
-### 📝 Text Agent
-
-No symptoms were provided.
-"""
-
-        fusion_card = """
-### 🔗 Fusion Decision
-
-Image-only prediction was used.
+> These are alternative AI predictions and are
+> not shown as confirmed diagnoses.
 """
 
     # ========================================================
@@ -956,13 +1243,9 @@ Image-only prediction was used.
     print("==============================================")
 
     return (
-        result_card,
-        vision_card,
-        text_card,
-        fusion_card,
-        top3_text,
-        agreement_text,
-        verification_text
+        diagnosis_card,
+        other_results,
+        ""
     )
 
 
@@ -974,10 +1257,6 @@ def clear_interface():
 
     return (
         None,
-        "",
-        "",
-        "",
-        "",
         "",
         "",
         "",
@@ -1075,7 +1354,7 @@ custom_css = """
 
 .result-card {
     border-radius: 22px !important;
-    padding: 28px !important;
+    padding: 30px !important;
     border: 1px solid #d1d5db !important;
 
     box-shadow:
@@ -1088,19 +1367,24 @@ custom_css = """
     font-size: 34px !important;
 }
 
-.agent-card {
-    border-radius: 18px !important;
-    padding: 20px !important;
-    border: 1px solid #d1d5db !important;
+.result-card h3 {
+    margin-top: 20px !important;
+}
 
-    box-shadow:
-        0 5px 18px rgba(0, 0, 0, 0.05);
+.result-card li {
+    margin-bottom: 8px !important;
+    line-height: 1.55 !important;
 }
 
 .top-card {
     border-radius: 18px !important;
     padding: 22px !important;
     border: 1px solid #d1d5db !important;
+
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, 0.05);
+
+    margin-top: 18px;
 }
 
 .info-box {
@@ -1140,6 +1424,7 @@ custom_css = """
     .result-card h1 {
         font-size: 27px !important;
     }
+
 }
 
 """
@@ -1153,9 +1438,9 @@ with gr.Blocks(
     title="Plant Disease Detection System"
 ) as demo:
 
-    # --------------------------------------------------------
+    # ========================================================
     # HERO
-    # --------------------------------------------------------
+    # ========================================================
 
     gr.HTML("""
     <div class="hero">
@@ -1163,21 +1448,22 @@ with gr.Blocks(
         <h1>🌿 Plant Disease Detection</h1>
 
         <p>
-            AI-powered plant health analysis using
-            Computer Vision and Symptom Analysis
+            Identify possible plant diseases and learn
+            what you can do next.
         </p>
 
         <p class="subtitle">
-            MobileNetV2&nbsp; • &nbsp;TF-IDF&nbsp; • &nbsp;SVM
-            &nbsp; • &nbsp;Fusion Agent
+            Upload a leaf photo and describe its symptoms
+            to get a possible diagnosis and practical guidance.
         </p>
 
     </div>
     """)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # INPUT SECTION
-    # --------------------------------------------------------
+    # ========================================================
 
     gr.HTML("""
     <div class="section-title">
@@ -1205,6 +1491,7 @@ with gr.Blocks(
             gr.Markdown(
                 "Upload a clear image of the affected leaf."
             )
+
 
         with gr.Column(
             scale=1,
@@ -1235,9 +1522,10 @@ with gr.Blocks(
             • Drying or discoloration
             """)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # BUTTONS
-    # --------------------------------------------------------
+    # ========================================================
 
     with gr.Row():
 
@@ -1253,70 +1541,49 @@ with gr.Blocks(
             elem_classes=["clear-button"]
         )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # RESULTS
-    # --------------------------------------------------------
+    # ========================================================
 
     gr.HTML("""
     <div class="section-title">
-        🎯 Diagnosis Result
+        🎯 Plant Disease Result
     </div>
     """)
 
-    result_output = gr.Markdown(
+    diagnosis_output = gr.Markdown(
         visible=True,
         elem_classes=["result-card"]
     )
 
-    # --------------------------------------------------------
-    # AGENT RESULTS
-    # --------------------------------------------------------
 
-    with gr.Row():
+    # ========================================================
+    # OTHER POSSIBLE RESULTS
+    # ========================================================
 
-        vision_output = gr.Markdown(
-            visible=True,
-            elem_classes=["agent-card"]
-        )
-
-        text_output = gr.Markdown(
-            visible=True,
-            elem_classes=["agent-card"]
-        )
-
-    fusion_output = gr.Markdown(
-        visible=True,
-        elem_classes=["agent-card"]
-    )
-
-    # --------------------------------------------------------
-    # TOP 3
-    # --------------------------------------------------------
-
-    top3_output = gr.Markdown(
+    other_results_output = gr.Markdown(
         visible=True,
         elem_classes=["top-card"]
     )
 
-    # --------------------------------------------------------
-    # STATUS
-    # --------------------------------------------------------
 
-    with gr.Row():
+    # ========================================================
+    # HIDDEN TECHNICAL OUTPUT
+    # ========================================================
+    #
+    # This output is intentionally hidden.
+    # The user does not need to see internal model details.
+    #
 
-        agreement_output = gr.Markdown(
-            visible=True,
-            elem_classes=["agent-card"]
-        )
+    technical_output = gr.Markdown(
+        visible=False
+    )
 
-        verification_output = gr.Markdown(
-            visible=True,
-            elem_classes=["agent-card"]
-        )
 
-    # --------------------------------------------------------
+    # ========================================================
     # INFORMATION
-    # --------------------------------------------------------
+    # ========================================================
 
     gr.HTML("""
     <div class="info-box">
@@ -1324,22 +1591,30 @@ with gr.Blocks(
         <h3>🌱 About This System</h3>
 
         <p>
-        This system combines image-based and symptom-based
-        machine learning predictions to assist with
-        plant disease identification.
+        This system uses artificial intelligence to analyze
+        plant leaf images and, when provided, the symptoms
+        described by the user.
         </p>
 
         <p>
-        When the two agents disagree or confidence is low,
-        further verification is recommended.
+        It provides a possible disease identification together
+        with information about why the problem may occur and
+        what the user can do next.
+        </p>
+
+        <p>
+        The result is an AI-assisted prediction and should be
+        confirmed by an agricultural specialist when the plant
+        problem is serious, spreading, or uncertain.
         </p>
 
     </div>
     """)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # FOOTER
-    # --------------------------------------------------------
+    # ========================================================
 
     gr.HTML("""
     <div class="footer">
@@ -1348,7 +1623,7 @@ with gr.Blocks(
 
         <br><br>
 
-        MobileNetV2 • TF-IDF • SVM • Fusion Agent
+        AI-assisted plant disease identification
 
         <br>
 
@@ -1361,9 +1636,10 @@ with gr.Blocks(
     </div>
     """)
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # ANALYZE EVENT
-    # --------------------------------------------------------
+    # ========================================================
 
     predict_button.click(
         fn=web_predict,
@@ -1372,19 +1648,16 @@ with gr.Blocks(
             symptoms_input
         ],
         outputs=[
-            result_output,
-            vision_output,
-            text_output,
-            fusion_output,
-            top3_output,
-            agreement_output,
-            verification_output
+            diagnosis_output,
+            other_results_output,
+            technical_output
         ]
     )
 
-    # --------------------------------------------------------
+
+    # ========================================================
     # CLEAR EVENT
-    # --------------------------------------------------------
+    # ========================================================
 
     clear_button.click(
         fn=clear_interface,
@@ -1392,13 +1665,9 @@ with gr.Blocks(
         outputs=[
             image_input,
             symptoms_input,
-            result_output,
-            vision_output,
-            text_output,
-            fusion_output,
-            top3_output,
-            agreement_output,
-            verification_output
+            diagnosis_output,
+            other_results_output,
+            technical_output
         ]
     )
 
@@ -1420,289 +1689,4 @@ if __name__ == "__main__":
         server_port=RENDER_PORT,
         css=custom_css,
         theme=gr.themes.Soft()
-    )
-classes = label_encoder.classes_
-# ============================================================
-# USER-FRIENDLY DISEASE INFORMATION
-# ============================================================
-
-DISEASE_INFO = {
-
-    "Bacterial Spot": {
-        "what_is_it": "A bacterial disease that causes dark spots and damaged areas on leaves.",
-        "why_happens": "It can spread through infected plant material, splashing water, and wet conditions.",
-        "what_to_do": [
-            "Remove badly affected leaves.",
-            "Avoid splashing water onto the leaves.",
-            "Keep good air circulation around the plant.",
-            "Remove infected plant material from the growing area."
-        ],
-        "prevention": [
-            "Keep leaves as dry as possible.",
-            "Avoid working with plants when they are wet.",
-            "Use clean gardening tools."
-        ]
-    },
-
-    "Black Rot": {
-        "what_is_it": "A plant disease that can cause dark, damaged areas on leaves and other plant parts.",
-        "why_happens": "It can spread through infected plant material and is encouraged by warm, wet conditions.",
-        "what_to_do": [
-            "Remove affected leaves and plant material.",
-            "Keep the plant area clean.",
-            "Avoid unnecessary overhead watering.",
-            "Monitor nearby plants for similar symptoms."
-        ],
-        "prevention": [
-            "Remove infected plant debris.",
-            "Improve air circulation.",
-            "Avoid keeping foliage continuously wet."
-        ]
-    },
-
-    "Early Blight": {
-        "what_is_it": "A common fungal disease that causes dark spots and damaged areas on leaves.",
-        "why_happens": "The disease is encouraged by moisture, warm conditions, and poor air circulation.",
-        "what_to_do": [
-            "Remove severely affected leaves.",
-            "Water near the soil instead of wetting the leaves.",
-            "Improve air circulation around plants.",
-            "Remove infected plant debris."
-        ],
-        "prevention": [
-            "Keep foliage dry when possible.",
-            "Give plants enough space for air movement.",
-            "Clean up fallen infected leaves."
-        ]
-    },
-
-    "Esca Black Measles": {
-        "what_is_it": "A serious disease associated with grapevines that can affect leaves and fruit.",
-        "why_happens": "It is associated with fungal infections that can enter and spread through damaged plant tissues.",
-        "what_to_do": [
-            "Remove and manage severely affected plant material.",
-            "Inspect the plant regularly for worsening symptoms.",
-            "Avoid unnecessary injuries to the plant.",
-            "Seek advice from a local agricultural specialist for severe cases."
-        ],
-        "prevention": [
-            "Use healthy planting material.",
-            "Protect pruning wounds where appropriate.",
-            "Maintain good vineyard sanitation."
-        ]
-    },
-
-    "Healthy": {
-        "what_is_it": "The plant image does not show clear signs of the diseases included in this system.",
-        "why_happens": "No obvious disease symptoms were identified from the submitted image.",
-        "what_to_do": [
-            "Continue normal plant care.",
-            "Monitor the plant regularly.",
-            "Check new leaves for changes in color, spots, or damage."
-        ],
-        "prevention": [
-            "Provide suitable water and growing conditions.",
-            "Keep the growing area clean.",
-            "Regularly inspect plants for early symptoms."
-        ]
-    },
-
-    "Huanglongbing": {
-        "what_is_it": "Huanglongbing, also called citrus greening, is a serious disease affecting citrus plants.",
-        "why_happens": "It is caused by bacteria associated with citrus greening and is spread by insect vectors.",
-        "what_to_do": [
-            "Inspect the plant for additional symptoms.",
-            "Remove or manage affected plants according to local agricultural guidance.",
-            "Control insect vectors using appropriate local recommendations.",
-            "Consult an agricultural specialist for confirmation."
-        ],
-        "prevention": [
-            "Use healthy planting material.",
-            "Monitor for insect vectors.",
-            "Follow local citrus disease-management recommendations."
-        ]
-    },
-
-    "Late Blight": {
-        "what_is_it": "A destructive disease that can cause dark, water-soaked-looking damage on leaves and other plant parts.",
-        "why_happens": "It spreads more easily during cool, wet, and humid conditions.",
-        "what_to_do": [
-            "Remove severely affected plant material.",
-            "Avoid wetting the leaves during watering.",
-            "Improve air circulation.",
-            "Act quickly if symptoms are spreading."
-        ],
-        "prevention": [
-            "Keep foliage dry when possible.",
-            "Avoid overcrowding plants.",
-            "Regularly inspect plants during humid or wet weather."
-        ]
-    },
-
-    "Leaf Blight": {
-        "what_is_it": "A condition in which areas of the leaf become damaged, discolored, and eventually dry out.",
-        "why_happens": "Leaf blight can be associated with infectious organisms and favorable environmental conditions such as prolonged moisture.",
-        "what_to_do": [
-            "Remove severely damaged leaves.",
-            "Keep foliage dry when possible.",
-            "Improve air circulation.",
-            "Monitor the plant for spreading symptoms."
-        ],
-        "prevention": [
-            "Avoid prolonged leaf wetness.",
-            "Remove infected plant debris.",
-            "Keep plants adequately spaced."
-        ]
-    },
-
-    "Leaf Mold": {
-        "what_is_it": "A fungal disease that can produce yellowing on the upper leaf surface and mold-like growth on the underside.",
-        "why_happens": "It is encouraged by high humidity and prolonged moisture around the leaves.",
-        "what_to_do": [
-            "Remove badly affected leaves.",
-            "Improve ventilation around the plant.",
-            "Reduce excessive humidity where possible.",
-            "Avoid unnecessary wetting of leaves."
-        ],
-        "prevention": [
-            "Improve air circulation.",
-            "Avoid excessive humidity.",
-            "Keep foliage dry when possible."
-        ]
-    },
-
-    "Leaf Scorch": {
-        "what_is_it": "Leaf scorch appears as dry, brown, or damaged areas along leaf edges or surfaces.",
-        "why_happens": "It can be associated with environmental stress, water imbalance, heat, or other growing conditions.",
-        "what_to_do": [
-            "Check whether the plant is receiving appropriate water.",
-            "Protect plants from excessive environmental stress where possible.",
-            "Inspect the plant for additional symptoms.",
-            "Maintain suitable growing conditions."
-        ],
-        "prevention": [
-            "Maintain consistent appropriate watering.",
-            "Avoid severe environmental stress.",
-            "Monitor plants during very hot or dry conditions."
-        ]
-    },
-
-    "Powdery Mildew": {
-        "what_is_it": "A fungal disease that often appears as a white, powder-like coating on leaves.",
-        "why_happens": "It is favored by certain humid conditions and poor air circulation, although the leaf surface does not always need to remain wet.",
-        "what_to_do": [
-            "Remove severely affected leaves.",
-            "Improve air circulation around the plant.",
-            "Avoid overcrowding.",
-            "Use an appropriate treatment recommended for the specific plant."
-        ],
-        "prevention": [
-            "Provide good air circulation.",
-            "Avoid overcrowding plants.",
-            "Monitor new growth regularly."
-        ]
-    },
-
-    "Septoria Leaf Spot": {
-        "what_is_it": "A fungal leaf disease that produces small spots on leaves and can cause affected leaves to decline.",
-        "why_happens": "It spreads more easily when leaves remain wet and infected plant debris is present.",
-        "what_to_do": [
-            "Remove severely affected leaves.",
-            "Remove fallen infected leaves.",
-            "Water near the soil instead of over the foliage.",
-            "Improve air circulation."
-        ],
-        "prevention": [
-            "Keep foliage dry when possible.",
-            "Clean up infected plant debris.",
-            "Avoid overcrowding plants."
-        ]
-    },
-
-    "Spider Mite": {
-        "what_is_it": "Spider mites are tiny pests that feed on plant tissues and can cause yellowing, speckling, and leaf damage.",
-        "why_happens": "They can increase rapidly during hot and dry conditions.",
-        "what_to_do": [
-            "Inspect the undersides of leaves.",
-            "Separate heavily affected plants when appropriate.",
-            "Wash plant surfaces with suitable water pressure when appropriate.",
-            "Use a pest-management treatment suitable for the plant if needed."
-        ],
-        "prevention": [
-            "Regularly inspect leaves.",
-            "Avoid severe plant stress.",
-            "Maintain appropriate growing conditions."
-        ]
-    },
-
-    "TYLCV": {
-        "what_is_it": "TYLCV stands for Tomato Yellow Leaf Curl Virus, a viral disease that can cause leaf curling and yellowing.",
-        "why_happens": "The virus is commonly spread by whiteflies feeding on infected plants.",
-        "what_to_do": [
-            "Remove severely affected plants when appropriate.",
-            "Control whiteflies using suitable local pest-management practices.",
-            "Remove nearby infected plant material.",
-            "Consult an agricultural specialist for severe outbreaks."
-        ],
-        "prevention": [
-            "Monitor plants for whiteflies.",
-            "Use healthy planting material.",
-            "Control insect vectors appropriately."
-        ]
-    },
-
-    "Target Spot": {
-        "what_is_it": "A fungal disease that can cause circular spots on leaves, sometimes with ring-like patterns.",
-        "why_happens": "It is encouraged by warm, humid conditions and prolonged leaf wetness.",
-        "what_to_do": [
-            "Remove severely affected leaves.",
-            "Avoid overhead watering.",
-            "Improve air circulation.",
-            "Remove infected plant debris."
-        ],
-        "prevention": [
-            "Keep foliage dry when possible.",
-            "Provide adequate spacing between plants.",
-            "Clean up infected leaves and debris."
-        ]
-    },
-
-    "Tomato Mosaic Virus": {
-        "what_is_it": "A viral disease that can cause mottled or mosaic-like patterns, distorted growth, and reduced plant health.",
-        "why_happens": "The virus can spread through infected plant material and contaminated hands or tools.",
-        "what_to_do": [
-            "Remove severely affected plants when appropriate.",
-            "Clean tools after handling affected plants.",
-            "Avoid handling healthy plants immediately after affected plants.",
-            "Use healthy planting material."
-        ],
-        "prevention": [
-            "Disinfect gardening tools.",
-            "Use healthy seeds or planting material.",
-            "Remove infected plant material promptly."
-        ]
-    }
-}
-
-
-def get_disease_info(disease):
-    """Return user-friendly information for the detected disease."""
-
-    return DISEASE_INFO.get(
-        disease,
-        {
-            "what_is_it": "The system detected a possible plant health problem.",
-            "why_happens": "The exact cause cannot be determined from the prediction alone.",
-            "what_to_do": [
-                "Inspect the plant carefully.",
-                "Remove severely damaged parts where appropriate.",
-                "Monitor the plant for changes.",
-                "Consult a local agricultural specialist for confirmation."
-            ],
-            "prevention": [
-                "Keep the growing area clean.",
-                "Provide suitable growing conditions.",
-                "Monitor plants regularly."
-            ]
-        }
     )
