@@ -11,6 +11,20 @@ import gradio as gr
 # MODEL PATHS
 # ============================================================
 
+
+# ============================================================
+# RENDER DEPLOYMENT CONFIGURATION
+# ============================================================
+
+import os
+
+# Render provides PORT dynamically.
+# Gradio reads these environment variables.
+os.environ["GRADIO_SERVER_NAME"] = "0.0.0.0"
+os.environ["GRADIO_SERVER_PORT"] = os.environ.get("PORT", "10000")
+os.environ["GRADIO_ANALYTICS_ENABLED"] = "False"
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_DIR = os.path.join(BASE_DIR, "models")
 
