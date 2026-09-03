@@ -1,0 +1,19 @@
+{
+    "project": "Plant Disease Detection System",
+    "platform": "Render",
+    "framework": "Gradio",
+    "classes": 16,
+    "models": [
+        "mobilenetv2.keras",
+        "tfidf_vectorizer.pkl",
+        "svm_classifier.pkl",
+        "calibrated_svm_classifier.pkl",
+        "label_encoder.pkl"
+    ],
+    "build_command": "pip install -r requirements.txt",
+    "start_command": "bash start.sh",
+    "source": "/content/drive/MyDrive/PlantDiseaseProject/Render_Deployment",
+    "github_package": "/content/drive/MyDrive/PlantDiseaseProject/GitHub_Deployment",
+    "notebook_10_modified": false,
+    "created": "2026-09-03T06:03:32.706910"
+}

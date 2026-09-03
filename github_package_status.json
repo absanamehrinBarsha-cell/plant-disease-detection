@@ -1,0 +1,13 @@
+{
+    "status": "READY",
+    "package": "/content/drive/MyDrive/PlantDiseaseProject/GitHub_Deployment",
+    "models": [
+        "mobilenetv2.keras",
+        "tfidf_vectorizer.pkl",
+        "svm_classifier.pkl",
+        "calibrated_svm_classifier.pkl",
+        "label_encoder.pkl"
+    ],
+    "notebook_10_modified": false,
+    "timestamp": "2026-09-03T06:03:32.724192"
+}
