@@ -1,8 +1,12 @@
 #!/bin/bash
+set -e
 
 echo "============================================================"
-echo "PLANT DISEASE DETECTION SYSTEM"
-echo "Starting Render deployment..."
+echo "STARTING PLANT DISEASE DETECTION APPLICATION"
 echo "============================================================"
 
-python app.py
+PORT="${PORT:-10000}"
+
+echo "Using PORT: ${PORT}"
+
+exec python app.py
