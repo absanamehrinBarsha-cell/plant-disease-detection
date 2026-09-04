@@ -4381,6 +4381,239 @@ gradio-app {
 }
 
 }
+
+/* =========================================================
+   PHONE FIX — PRESERVE DESKTOP LAYOUT
+   This block only applies to screens 700px and below.
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    html,
+    body,
+    gradio-app,
+    #root,
+    .main {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        overflow-x: hidden !important;
+    }
+
+    .gradio-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 8px 10px 28px 10px !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Force every Gradio row to become a single-column
+       layout on phones instead of retaining desktop widths. */
+    .gradio-container .gradio-row,
+    .gradio-container .row {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        gap: 12px !important;
+        box-sizing: border-box !important;
+    }
+
+    .gradio-container .gradio-column,
+    .gradio-container .column {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    /* Keep every custom section inside the phone viewport. */
+    .hero,
+    .section-title,
+    .input-card,
+    .overview-panel,
+    .model-panel,
+    .guide-wrapper,
+    .details-grid,
+    .details-card,
+    .diagnosis-wrapper,
+    .result-card,
+    .top-card,
+    .technical-details,
+    .technical-details-final,
+    .alternatives-wrapper,
+    .footer {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .hero {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 32px 16px !important;
+        border-radius: 20px !important;
+    }
+
+    .hero h1 {
+        font-size: 29px !important;
+        line-height: 1.1 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .hero-subtitle {
+        font-size: 14px !important;
+        line-height: 1.45 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .hero-description {
+        font-size: 12px !important;
+        line-height: 1.55 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .input-card {
+        padding: 14px !important;
+        border-radius: 18px !important;
+        overflow: hidden !important;
+    }
+
+    /* Gradio's image component must not keep a desktop-sized
+       internal frame wider than the phone viewport. */
+    .input-card .image-upload,
+    .input-card [data-testid="image"],
+    .input-card .image-container,
+    .input-card .image-frame,
+    .input-card img {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .input-card .image-container {
+        overflow: hidden !important;
+    }
+
+    .input-card textarea,
+    .input-card input {
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .analyze-button,
+    .clear-button {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .diagnosis-top {
+        padding: 26px 16px !important;
+    }
+
+    .diagnosis-top h1 {
+        font-size: 25px !important;
+        line-height: 1.2 !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .diagnosis-description,
+    .info-card-text,
+    .action-text,
+    .prevention-item,
+    .alternative-name,
+    .alternative-note,
+    .technical-card-final p {
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .confidence-section,
+    .result-section,
+    .prevention-section,
+    .result-disclaimer {
+        box-sizing: border-box !important;
+    }
+
+    .information-grid,
+    .prevention-list,
+    .technical-grid-final,
+    .technical-facts-final,
+    .details-grid,
+    .quick-grid,
+    .guide-grid,
+    .quality-strip,
+    .model-stats {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        grid-template-columns: 1fr !important;
+        box-sizing: border-box !important;
+    }
+
+    .information-grid {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .result-section {
+        padding: 20px 16px !important;
+    }
+
+    .prevention-section,
+    .result-disclaimer {
+        margin-left: 16px !important;
+        margin-right: 16px !important;
+        width: calc(100% - 32px) !important;
+    }
+
+    .technical-details-final summary {
+        grid-template-columns: 42px minmax(0, 1fr) 32px !important;
+        gap: 10px !important;
+        padding: 14px !important;
+        box-sizing: border-box !important;
+    }
+
+    .technical-summary-icon {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 12px !important;
+        font-size: 20px !important;
+    }
+
+    .technical-summary-title {
+        font-size: 15px !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .technical-summary-subtitle {
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .footer {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+        overflow-wrap: anywhere !important;
+    }
+}
+
 """
 
 
