@@ -4383,151 +4383,245 @@ gradio-app {
 }
 
 /* =========================================================
-   PHONE FIX — PRESERVE DESKTOP LAYOUT
-   This block only applies to screens 700px and below.
+   CLEAN PHONE UI — LIGHT BACKGROUND + ANALYZE SECTION FIX
+   This is a mobile-only override. Desktop styles are untouched.
    ========================================================= */
 
 @media (max-width: 700px) {
+
+    /* ---- Force Gradio's theme itself to stay light ---- */
+    :root,
+    gradio-app,
+    body,
+    #root {
+        --body-background-fill: #f5fbf7 !important;
+        --background-fill-primary: #ffffff !important;
+        --background-fill-secondary: #eef8f1 !important;
+        --block-background-fill: #ffffff !important;
+        --block-background-fill-secondary: #f7fcf9 !important;
+        --panel-background-fill: #ffffff !important;
+        --input-background-fill: #ffffff !important;
+        --input-background-fill-focus: #ffffff !important;
+        --button-secondary-background-fill: #ffffff !important;
+        --button-secondary-background-fill-hover: #f0f8f3 !important;
+        --border-color-primary: #d7e8dd !important;
+        --border-color-accent: #a8d5ba !important;
+        --body-text-color: #12372a !important;
+        --body-text-color-subdued: #5b7467 !important;
+        color-scheme: light !important;
+    }
 
     html,
     body,
     gradio-app,
     #root,
     .main {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        overflow-x: hidden !important;
+        background: #f5fbf7 !important;
+        color: #12372a !important;
     }
 
+    body {
+        background-image:
+            radial-gradient(circle at 10% 0%, rgba(167,243,208,.28), transparent 24%),
+            radial-gradient(circle at 95% 12%, rgba(187,247,208,.20), transparent 25%),
+            linear-gradient(180deg, #f3fbf6 0%, #f8fcf9 48%, #eef8f1 100%) !important;
+        background-attachment: scroll !important;
+    }
+
+    gradio-app,
+    #root,
+    .main,
     .gradio-container {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         margin: 0 !important;
-        padding: 8px 10px 28px 10px !important;
         box-sizing: border-box !important;
         overflow-x: hidden !important;
     }
 
-    /* Force every Gradio row to become a single-column
-       layout on phones instead of retaining desktop widths. */
-    .gradio-container .gradio-row,
-    .gradio-container .row {
+    .gradio-container {
+        padding: 10px 12px 30px !important;
+        background: transparent !important;
+    }
+
+    .gradio-container::before {
+        display: none !important;
+    }
+
+    /* ---- Clean every Gradio row/column on the phone ---- */
+    .gradio-container .row,
+    .gradio-container .gradio-row {
         display: flex !important;
         flex-direction: column !important;
         flex-wrap: nowrap !important;
+        align-items: stretch !important;
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
         gap: 12px !important;
+        margin: 0 !important;
         box-sizing: border-box !important;
     }
 
-    .gradio-container .gradio-column,
-    .gradio-container .column {
-        flex: 0 0 100% !important;
+    .gradio-container .column,
+    .gradio-container .gradio-column {
+        display: flex !important;
+        flex: 0 0 auto !important;
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
+        margin: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 
-    /* Keep every custom section inside the phone viewport. */
-    .hero,
-    .section-title,
-    .input-card,
-    .overview-panel,
-    .model-panel,
-    .guide-wrapper,
-    .details-grid,
-    .details-card,
-    .diagnosis-wrapper,
-    .result-card,
-    .top-card,
-    .technical-details,
-    .technical-details-final,
-    .alternatives-wrapper,
-    .footer {
+    /* ---- Make the Analyze Your Plant area a clean stack ---- */
+    .section-title {
         width: 100% !important;
         max-width: 100% !important;
-        min-width: 0 !important;
+        margin: 24px 2px 12px !important;
+        padding: 0 !important;
         box-sizing: border-box !important;
     }
 
-    .hero {
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-        padding: 32px 16px !important;
-        border-radius: 20px !important;
-    }
-
-    .hero h1 {
-        font-size: 29px !important;
-        line-height: 1.1 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .hero-subtitle {
-        font-size: 14px !important;
-        line-height: 1.45 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .hero-description {
-        font-size: 12px !important;
-        line-height: 1.55 !important;
-        overflow-wrap: anywhere !important;
+    .section-title-icon {
+        flex: 0 0 auto !important;
     }
 
     .input-card {
-        padding: 14px !important;
-        border-radius: 18px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 16px !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        border: 1px solid #d6e8dc !important;
+        box-shadow: 0 8px 24px rgba(6,78,59,.07) !important;
         overflow: hidden !important;
     }
 
-    /* Gradio's image component must not keep a desktop-sized
-       internal frame wider than the phone viewport. */
+    .input-card h3,
+    .input-card p,
+    .input-card label,
+    .input-card span {
+        max-width: 100% !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* ---- Image uploader: no black/dark frame ---- */
     .input-card .image-upload,
     .input-card [data-testid="image"],
     .input-card .image-container,
     .input-card .image-frame,
-    .input-card img {
+    .input-card .wrap,
+    .input-card .block {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
+        background: #f3fbf6 !important;
+        color: #12372a !important;
     }
 
-    .input-card .image-container {
+    .input-card .image-upload {
+        min-height: 230px !important;
+        height: auto !important;
+        border-radius: 16px !important;
+        border: 2px dashed #9acbb4 !important;
         overflow: hidden !important;
     }
 
+    .input-card .image-upload img,
+    .input-card .image-container img,
+    .input-card img {
+        max-width: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* ---- Symptoms box: comfortable phone size ---- */
     .input-card textarea,
-    .input-card input {
+    .input-card input,
+    .input-card .textarea-container,
+    .input-card .input-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        background: #fbfefc !important;
+        color: #12372a !important;
+    }
+
+    .input-card textarea {
+        min-height: 175px !important;
+        font-size: 15px !important;
+        line-height: 1.55 !important;
+    }
+
+    .tip-box {
+        width: 100% !important;
         max-width: 100% !important;
         box-sizing: border-box !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* ---- Analyze / Start Over: clean full-width buttons ---- */
+    .gradio-container .row:has(.analyze-button),
+    .gradio-container .gradio-row:has(.analyze-button) {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 9px !important;
+        margin: 4px 0 0 !important;
     }
 
     .analyze-button,
     .clear-button {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        min-height: 54px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 15px !important;
+    }
+
+    /* ---- Result area: keep every card inside the viewport ---- */
+    .diagnosis-wrapper,
+    .result-card,
+    .top-card,
+    .confidence-section,
+    .info-card,
+    .prevention-section,
+    .result-disclaimer,
+    .technical-details-final {
         width: 100% !important;
         max-width: 100% !important;
         min-width: 0 !important;
         box-sizing: border-box !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .diagnosis-wrapper {
+        border-radius: 20px !important;
+        overflow: hidden !important;
     }
 
     .diagnosis-top {
+        width: 100% !important;
+        max-width: 100% !important;
         padding: 26px 16px !important;
+        box-sizing: border-box !important;
     }
 
     .diagnosis-top h1 {
         font-size: 25px !important;
-        line-height: 1.2 !important;
+        line-height: 1.18 !important;
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
     }
@@ -4538,16 +4632,10 @@ gradio-app {
     .prevention-item,
     .alternative-name,
     .alternative-note,
-    .technical-card-final p {
+    .technical-card-final p,
+    .check-row p {
         overflow-wrap: anywhere !important;
         word-break: break-word !important;
-    }
-
-    .confidence-section,
-    .result-section,
-    .prevention-section,
-    .result-disclaimer {
-        box-sizing: border-box !important;
     }
 
     .information-grid,
@@ -4566,50 +4654,53 @@ gradio-app {
         box-sizing: border-box !important;
     }
 
-    .information-grid {
-        padding-left: 16px !important;
-        padding-right: 16px !important;
-    }
-
-    .result-section {
-        padding: 20px 16px !important;
-    }
-
-    .prevention-section,
-    .result-disclaimer {
-        margin-left: 16px !important;
-        margin-right: 16px !important;
-        width: calc(100% - 32px) !important;
-    }
-
-    .technical-details-final summary {
-        grid-template-columns: 42px minmax(0, 1fr) 32px !important;
-        gap: 10px !important;
-        padding: 14px !important;
+    .overview-panel,
+    .model-panel,
+    .guide-wrapper,
+    .details-card,
+    .footer {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
         box-sizing: border-box !important;
     }
 
-    .technical-summary-icon {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 12px !important;
-        font-size: 20px !important;
+    .overview-panel,
+    .model-panel,
+    .guide-wrapper,
+    .details-card {
+        padding: 18px !important;
+        border-radius: 20px !important;
     }
 
-    .technical-summary-title {
-        font-size: 15px !important;
-        overflow-wrap: anywhere !important;
+    .quick-card,
+    .guide-card,
+    .details-card,
+    .model-step,
+    .stat,
+    .quality-strip {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
 
+    .technical-details-final summary {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 14px !important;
+        grid-template-columns: 40px minmax(0, 1fr) 28px !important;
+        gap: 9px !important;
+    }
+
+    .technical-summary-title,
     .technical-summary-subtitle {
-        font-size: 11px !important;
-        line-height: 1.4 !important;
         overflow-wrap: anywhere !important;
+        word-break: break-word !important;
     }
 
     .footer {
-        padding-left: 10px !important;
-        padding-right: 10px !important;
+        padding: 22px 10px !important;
         overflow-wrap: anywhere !important;
     }
 }
