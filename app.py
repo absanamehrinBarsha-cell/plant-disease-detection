@@ -3507,6 +3507,186 @@ footer {
 }
 
 
+
+/* =========================================================
+   COLLAPSED TECHNICAL MODEL SECTION
+   ========================================================= */
+
+.technical-details {
+    margin-top: 35px;
+    border: 1px solid #cfe5d8;
+    border-radius: 24px;
+    background: linear-gradient(145deg, #f7fdf9, #e8f7ee);
+    box-shadow: 0 10px 30px rgba(6,78,59,.07);
+    overflow: hidden;
+}
+
+.technical-details summary {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 21px 24px;
+    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+    color: #064e3b;
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.technical-details summary::-webkit-details-marker {
+    display: none;
+}
+
+.technical-details summary::after {
+    content: "＋";
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(6,78,59,.08);
+    color: #047857;
+    font-size: 18px;
+    font-weight: 800;
+    flex: 0 0 30px;
+}
+
+.technical-details[open] summary::after {
+    content: "−";
+}
+
+.technical-details summary:hover {
+    background: linear-gradient(135deg, #dff7ea, #bff0d2);
+}
+
+.technical-summary-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.technical-summary-hint {
+    color: #648076;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.technical-content {
+    padding: 23px 24px 25px;
+    border-top: 1px solid #d6e9dd;
+}
+
+.technical-intro {
+    margin-bottom: 20px;
+    color: #4f6f61;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.technical-flow {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.technical-step {
+    position: relative;
+    min-height: 195px;
+    padding: 21px;
+    border: 1px solid #d8e9df;
+    border-radius: 19px;
+    background: rgba(255,255,255,.82);
+}
+
+.technical-step-final {
+    background: linear-gradient(145deg, #ecfdf5, #d1fae5);
+    border-color: #a7e8c3;
+}
+
+.technical-step-number {
+    position: absolute;
+    top: 13px;
+    right: 15px;
+    color: #8bb7a0;
+    font-size: 11px;
+    font-weight: 900;
+}
+
+.technical-step-icon {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 13px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+    font-size: 22px;
+}
+
+.technical-step-label {
+    color: #0f766e;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 1.4px;
+}
+
+.technical-step h3 {
+    margin: 7px 0 7px;
+    color: #064e3b;
+    font-size: 18px;
+    font-weight: 850;
+}
+
+.technical-step p {
+    margin: 0;
+    color: #587367;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.technical-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #059669;
+    font-size: 28px;
+    font-weight: 900;
+}
+
+.technical-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.technical-stat {
+    padding: 15px 10px;
+    border-radius: 15px;
+    text-align: center;
+    background: #064e3b;
+    color: white;
+}
+
+.technical-stat strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #a7f3d0;
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.technical-stat span {
+    color: rgba(255,255,255,.70);
+    font-size: 10px;
+}
+
+
 /* =========================================================
    MOBILE
    ========================================================= */
@@ -3946,47 +4126,7 @@ with gr.Blocks(
 
     </div>
 
-    <div class="model-panel">
-        <div class="model-heading">
-            <div class="model-icon">🧠</div>
-            <div>
-                <div class="model-kicker">WHAT HAPPENS BEHIND THE RESULT</div>
-                <h2>How the AI assessment works</h2>
-                <p>The technical process stays in the background; this section explains it in simple language.</p>
-            </div>
-        </div>
 
-        <div class="model-flow">
-            <div class="model-step">
-                <div class="model-step-top"><span>01</span><b>Vision model</b></div>
-                <h3>MobileNetV2</h3>
-                <p>Analyzes visual patterns in the uploaded leaf image and estimates the supported disease classes.</p>
-            </div>
-
-            <div class="flow-arrow">→</div>
-
-            <div class="model-step">
-                <div class="model-step-top"><span>02</span><b>Symptom model</b></div>
-                <h3>TF-IDF + SVM</h3>
-                <p>When symptoms are entered, the text is converted into useful features and classified by a calibrated SVM.</p>
-            </div>
-
-            <div class="flow-arrow">→</div>
-
-            <div class="model-step model-step-final">
-                <div class="model-step-top"><span>03</span><b>Final assessment</b></div>
-                <h3>Combined evidence</h3>
-                <p>When both inputs are available, their probability information is combined to produce the displayed result.</p>
-            </div>
-        </div>
-
-        <div class="model-stats">
-            <div class="stat"><strong>{len(classes)}</strong><span>Supported classes</span></div>
-            <div class="stat"><strong>224×224</strong><span>Vision input size</span></div>
-            <div class="stat"><strong>50 / 50</strong><span>Image + symptom fusion</span></div>
-            <div class="stat"><strong>AI-assisted</strong><span>Not a laboratory diagnosis</span></div>
-        </div>
-    </div>
     """)
 
 
@@ -4361,6 +4501,159 @@ with gr.Blocks(
 
     </div>
     """)
+
+
+    # ========================================================
+    # TECHNICAL MODEL EXPLANATION
+    # ========================================================
+    #
+    # Shown after the user-facing result and guidance.
+    # Collapsed by default so regular users see the practical
+    # information first, while the examiner can expand it.
+    #
+
+    gr.HTML(f"""
+    <details class="technical-details">
+
+        <summary>
+            <span class="technical-summary-title">🧠 How the AI works</span>
+            <span class="technical-summary-hint">Click to understand the model</span>
+        </summary>
+
+        <div class="technical-content">
+
+            <div class="technical-intro">
+                <strong>Behind the scenes:</strong>
+                the system uses image analysis and optional symptom
+                analysis. This technical explanation is kept separate
+                from the main diagnosis so users can focus on the
+                practical guidance first.
+            </div>
+
+            <div class="technical-flow">
+
+                <div class="technical-step">
+
+                    <div class="technical-step-number">
+                        01
+                    </div>
+
+                    <div class="technical-step-icon">
+                        👁️
+                    </div>
+
+                    <div class="technical-step-label">
+                        IMAGE MODEL
+                    </div>
+
+                    <h3>
+                        MobileNetV2
+                    </h3>
+
+                    <p>
+                        Analyzes visual patterns in the uploaded leaf
+                        image and estimates which supported condition
+                        best matches the image.
+                    </p>
+
+                </div>
+
+
+                <div class="technical-arrow">
+                    →
+                </div>
+
+
+                <div class="technical-step">
+
+                    <div class="technical-step-number">
+                        02
+                    </div>
+
+                    <div class="technical-step-icon">
+                        📝
+                    </div>
+
+                    <div class="technical-step-label">
+                        SYMPTOM MODEL
+                    </div>
+
+                    <h3>
+                        TF-IDF + SVM
+                    </h3>
+
+                    <p>
+                        When symptoms are entered, the text is converted
+                        into numerical features and classified using the
+                        trained symptom model.
+                    </p>
+
+                </div>
+
+
+                <div class="technical-arrow">
+                    →
+                </div>
+
+
+                <div class="technical-step technical-step-final">
+
+                    <div class="technical-step-number">
+                        03
+                    </div>
+
+                    <div class="technical-step-icon">
+                        🌿
+                    </div>
+
+                    <div class="technical-step-label">
+                        FINAL ASSESSMENT
+                    </div>
+
+                    <h3>
+                        Combined Evidence
+                    </h3>
+
+                    <p>
+                        When both image and symptom information are
+                        available, their prediction information is
+                        combined to produce the displayed assessment.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="technical-stats">
+
+                <div class="technical-stat">
+                    <strong>{len(classes)}</strong>
+                    <span>Supported classes</span>
+                </div>
+
+                <div class="technical-stat">
+                    <strong>224 × 224</strong>
+                    <span>Vision input size</span>
+                </div>
+
+                <div class="technical-stat">
+                    <strong>2 inputs</strong>
+                    <span>Image + symptoms</span>
+                </div>
+
+                <div class="technical-stat">
+                    <strong>AI-assisted</strong>
+                    <span>Not a laboratory diagnosis</span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </details>
+    """)
+
 
     # ========================================================
     # DISCLAIMER
