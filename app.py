@@ -19,7 +19,7 @@ import gradio as gr
 
 
 # ============================================================
-# EXPLICITLY DISABLE TENSORFLOW JIT / XLA
+# DISABLE TENSORFLOW JIT / XLA
 # ============================================================
 
 tf.config.optimizer.set_jit(False)
@@ -92,10 +92,6 @@ print("==============================================")
 
 load_start = time.perf_counter()
 
-# ------------------------------------------------------------
-# MobileNetV2
-# ------------------------------------------------------------
-
 vision_model = tf.keras.models.load_model(
     vision_path,
     compile=False
@@ -106,10 +102,6 @@ try:
 except Exception:
     pass
 
-
-# ------------------------------------------------------------
-# Scikit-learn models
-# ------------------------------------------------------------
 
 tfidf_vectorizer = joblib.load(
     tfidf_path
@@ -175,10 +167,6 @@ def preprocess_image(image):
         np.asarray(image)
     )
 
-    # --------------------------------------------------------
-    # Make sure image has three channels
-    # --------------------------------------------------------
-
     if image.shape.rank == 2:
 
         image = tf.stack(
@@ -190,35 +178,19 @@ def preprocess_image(image):
 
         image = image[..., :3]
 
-    # --------------------------------------------------------
-    # Resize
-    # --------------------------------------------------------
-
     image = tf.image.resize(
         image,
         IMAGE_SIZE
     )
-
-    # --------------------------------------------------------
-    # Convert to float32
-    # --------------------------------------------------------
 
     image = tf.cast(
         image,
         tf.float32
     )
 
-    # --------------------------------------------------------
-    # MobileNetV2 preprocessing
-    # --------------------------------------------------------
-
     image = tf.keras.applications.mobilenet_v2.preprocess_input(
         image
     )
-
-    # --------------------------------------------------------
-    # Add batch dimension
-    # --------------------------------------------------------
 
     image = tf.expand_dims(
         image,
@@ -231,41 +203,16 @@ def preprocess_image(image):
 # ============================================================
 # VISION PREDICTION
 # ============================================================
-#
-# Direct eager inference is intentionally used instead of
-# vision_model.predict() to avoid slow XLA compilation on Render.
-# ============================================================
 
 def vision_predict(image):
 
     total_start = time.perf_counter()
 
     print("")
-    print("Image analysis: preprocessing image...")
-
-    preprocess_start = time.perf_counter()
+    print("Image analysis started...")
 
     processed_image = preprocess_image(
         image
-    )
-
-    preprocess_time = (
-        time.perf_counter()
-        -
-        preprocess_start
-    )
-
-    print(
-        f"Image preprocessing complete "
-        f"({preprocess_time:.3f}s)"
-    )
-
-    # --------------------------------------------------------
-    # Direct eager model inference
-    # --------------------------------------------------------
-
-    print(
-        "Running MobileNetV2 using direct inference..."
     )
 
     inference_start = time.perf_counter()
@@ -280,15 +227,6 @@ def vision_predict(image):
         -
         inference_start
     )
-
-    print(
-        f"Image analysis complete "
-        f"({inference_time:.3f}s)"
-    )
-
-    # --------------------------------------------------------
-    # Convert output to NumPy
-    # --------------------------------------------------------
 
     probabilities = np.asarray(
         prediction
@@ -319,7 +257,11 @@ def vision_predict(image):
     )
 
     print(
-        f"Image analysis total time: {total_time:.3f}s"
+        f"Inference time: {inference_time:.3f}s"
+    )
+
+    print(
+        f"Total image analysis: {total_time:.3f}s"
     )
 
     return {
@@ -338,25 +280,15 @@ def text_predict(symptoms):
 
     total_start = time.perf_counter()
 
-    print("Processing symptom description...")
-
     cleaned_text = clean_text(
         symptoms
     )
-
-    # --------------------------------------------------------
-    # Empty text
-    # --------------------------------------------------------
 
     if not cleaned_text:
 
         probabilities = np.zeros(
             len(classes),
             dtype=np.float32
-        )
-
-        print(
-            "No symptoms supplied."
         )
 
         return {
@@ -366,47 +298,13 @@ def text_predict(symptoms):
             "probabilities": probabilities
         }
 
-    # --------------------------------------------------------
-    # TF-IDF
-    # --------------------------------------------------------
-
-    tfidf_start = time.perf_counter()
-
     text_features = tfidf_vectorizer.transform(
         [cleaned_text]
     )
 
-    tfidf_time = (
-        time.perf_counter()
-        -
-        tfidf_start
-    )
-
-    print(
-        f"Symptom processing complete "
-        f"({tfidf_time:.3f}s)"
-    )
-
-    # --------------------------------------------------------
-    # SVM probability prediction
-    # --------------------------------------------------------
-
-    svm_start = time.perf_counter()
-
     probabilities = calibrated_svm.predict_proba(
         text_features
     )[0]
-
-    svm_time = (
-        time.perf_counter()
-        -
-        svm_start
-    )
-
-    print(
-        f"Symptom prediction complete "
-        f"({svm_time:.3f}s)"
-    )
 
     predicted_index = int(
         np.argmax(probabilities)
@@ -433,7 +331,7 @@ def text_predict(symptoms):
     )
 
     print(
-        f"Symptom analysis total time: {total_time:.3f}s"
+        f"Total symptom analysis: {total_time:.3f}s"
     )
 
     return {
@@ -492,10 +390,6 @@ def fusion_predict(
     text_weight=0.5
 ):
 
-    print(
-        "Combining image and symptom predictions..."
-    )
-
     vision_probabilities = np.asarray(
         vision_result["probabilities"],
         dtype=np.float32
@@ -506,10 +400,6 @@ def fusion_predict(
         dtype=np.float32
     )
 
-    # --------------------------------------------------------
-    # Safety check
-    # --------------------------------------------------------
-
     if len(vision_probabilities) != len(
         text_probabilities
     ):
@@ -518,10 +408,6 @@ def fusion_predict(
             "Image and symptom probability vectors "
             "have different lengths."
         )
-
-    # --------------------------------------------------------
-    # Combine probabilities
-    # --------------------------------------------------------
 
     final_probabilities = (
         vision_weight * vision_probabilities
@@ -543,76 +429,13 @@ def fusion_predict(
         final_probabilities[final_index]
     )
 
-    agents_agree = (
-        vision_result["disease"]
-        ==
-        text_result["disease"]
-    )
-
-    verification_needed = (
-        not agents_agree
-        or
-        final_confidence < 0.70
-    )
-
-    if agents_agree:
-
-        if final_confidence >= 0.70:
-
-            decision = "Both predictions agree"
-
-        else:
-
-            decision = "Both predictions agree with lower certainty"
-
-    else:
-
-        if (
-            vision_result["confidence"]
-            >=
-            text_result["confidence"]
-        ):
-
-            decision = "Image prediction preferred"
-
-        else:
-
-            decision = "Symptom prediction preferred"
-
-    print(
-        "Combined prediction:",
-        final_disease,
-        f"({final_confidence * 100:.2f}%)"
-    )
-
     return {
-
-        "vision_disease":
-            vision_result["disease"],
-
-        "vision_confidence":
-            vision_result["confidence"],
-
-        "text_disease":
-            text_result["disease"],
-
-        "text_confidence":
-            text_result["confidence"],
 
         "final_disease":
             final_disease,
 
         "final_confidence":
             final_confidence,
-
-        "agents_agree":
-            agents_agree,
-
-        "verification_needed":
-            verification_needed,
-
-        "decision":
-            decision,
 
         "final_probabilities":
             final_probabilities
@@ -644,7 +467,10 @@ DISEASE_INFO = {
             "Keep leaves as dry as possible.",
             "Avoid working with plants when they are wet.",
             "Use clean gardening tools."
-        ]
+        ],
+
+        "expert_help":
+            "If the disease is spreading quickly or affecting many plants, consider consulting a local agricultural specialist."
     },
 
 
@@ -667,7 +493,10 @@ DISEASE_INFO = {
             "Remove infected plant debris.",
             "Improve air circulation.",
             "Avoid keeping foliage continuously wet."
-        ]
+        ],
+
+        "expert_help":
+            "Seek professional advice if symptoms continue to spread despite basic plant-care measures."
     },
 
 
@@ -690,7 +519,10 @@ DISEASE_INFO = {
             "Keep foliage dry when possible.",
             "Give plants enough space for air movement.",
             "Clean up fallen infected leaves."
-        ]
+        ],
+
+        "expert_help":
+            "If symptoms are rapidly increasing, professional confirmation can help determine the most suitable treatment."
     },
 
 
@@ -713,14 +545,17 @@ DISEASE_INFO = {
             "Use healthy planting material.",
             "Protect pruning wounds where appropriate.",
             "Maintain good vineyard sanitation."
-        ]
+        ],
+
+        "expert_help":
+            "Because this can be a serious vine disease, professional confirmation is recommended for severe or persistent symptoms."
     },
 
 
     "Healthy": {
 
         "what_is_it":
-            "The plant image does not show clear signs of the diseases included in this system.",
+            "The submitted image does not show clear signs of the diseases included in this system.",
 
         "why_happens":
             "No obvious disease symptoms were identified from the submitted image.",
@@ -735,7 +570,10 @@ DISEASE_INFO = {
             "Provide suitable water and growing conditions.",
             "Keep the growing area clean.",
             "Regularly inspect plants for early symptoms."
-        ]
+        ],
+
+        "expert_help":
+            "If the plant continues to decline even though it appears healthy to the system, consider getting it checked by an agricultural specialist."
     },
 
 
@@ -749,8 +587,8 @@ DISEASE_INFO = {
 
         "what_to_do": [
             "Inspect the plant for additional symptoms.",
-            "Remove or manage affected plants according to local agricultural guidance.",
-            "Control insect vectors using appropriate local recommendations.",
+            "Manage affected plants according to local agricultural guidance.",
+            "Monitor and manage insect vectors using appropriate local recommendations.",
             "Consult an agricultural specialist for confirmation."
         ],
 
@@ -758,7 +596,10 @@ DISEASE_INFO = {
             "Use healthy planting material.",
             "Monitor for insect vectors.",
             "Follow local citrus disease-management recommendations."
-        ]
+        ],
+
+        "expert_help":
+            "Professional confirmation is strongly recommended because citrus greening can seriously affect citrus production."
     },
 
 
@@ -781,7 +622,10 @@ DISEASE_INFO = {
             "Keep foliage dry when possible.",
             "Avoid overcrowding plants.",
             "Regularly inspect plants during humid or wet weather."
-        ]
+        ],
+
+        "expert_help":
+            "Rapidly spreading symptoms should be assessed promptly, especially when many plants are affected."
     },
 
 
@@ -804,7 +648,10 @@ DISEASE_INFO = {
             "Avoid prolonged leaf wetness.",
             "Remove infected plant debris.",
             "Keep plants adequately spaced."
-        ]
+        ],
+
+        "expert_help":
+            "If the damage continues spreading, consider professional confirmation."
     },
 
 
@@ -827,7 +674,10 @@ DISEASE_INFO = {
             "Improve air circulation.",
             "Avoid excessive humidity.",
             "Keep foliage dry when possible."
-        ]
+        ],
+
+        "expert_help":
+            "If symptoms continue despite improved ventilation and moisture management, seek agricultural advice."
     },
 
 
@@ -850,7 +700,10 @@ DISEASE_INFO = {
             "Maintain consistent appropriate watering.",
             "Avoid severe environmental stress.",
             "Monitor plants during very hot or dry conditions."
-        ]
+        ],
+
+        "expert_help":
+            "If leaf damage continues or affects new growth, professional advice may help identify the underlying cause."
     },
 
 
@@ -873,7 +726,10 @@ DISEASE_INFO = {
             "Provide good air circulation.",
             "Avoid overcrowding plants.",
             "Monitor new growth regularly."
-        ]
+        ],
+
+        "expert_help":
+            "If the infection is severe or recurring, consult an agricultural specialist about suitable treatment options."
     },
 
 
@@ -896,7 +752,10 @@ DISEASE_INFO = {
             "Keep foliage dry when possible.",
             "Clean up infected plant debris.",
             "Avoid overcrowding plants."
-        ]
+        ],
+
+        "expert_help":
+            "Professional confirmation is useful when leaf spotting is severe or difficult to distinguish from other diseases."
     },
 
 
@@ -919,7 +778,10 @@ DISEASE_INFO = {
             "Regularly inspect leaves.",
             "Avoid severe plant stress.",
             "Maintain appropriate growing conditions."
-        ]
+        ],
+
+        "expert_help":
+            "If the infestation becomes severe or spreads to nearby plants, seek advice about appropriate pest management."
     },
 
 
@@ -942,7 +804,10 @@ DISEASE_INFO = {
             "Monitor plants for whiteflies.",
             "Use healthy planting material.",
             "Control insect vectors appropriately."
-        ]
+        ],
+
+        "expert_help":
+            "Because viral diseases require careful management, professional confirmation is recommended for serious outbreaks."
     },
 
 
@@ -965,7 +830,10 @@ DISEASE_INFO = {
             "Keep foliage dry when possible.",
             "Provide adequate spacing between plants.",
             "Clean up infected leaves and debris."
-        ]
+        ],
+
+        "expert_help":
+            "If spotting continues to spread, professional confirmation can help distinguish it from similar leaf diseases."
     },
 
 
@@ -988,13 +856,16 @@ DISEASE_INFO = {
             "Disinfect gardening tools.",
             "Use healthy seeds or planting material.",
             "Remove infected plant material promptly."
-        ]
+        ],
+
+        "expert_help":
+            "If several plants show similar symptoms, seek agricultural advice to help confirm the cause and manage spread."
     }
 }
 
 
 # ============================================================
-# GET DISEASE INFORMATION
+# DISEASE INFORMATION
 # ============================================================
 
 def get_disease_info(disease):
@@ -1019,13 +890,74 @@ def get_disease_info(disease):
                 "Keep the growing area clean.",
                 "Provide suitable growing conditions.",
                 "Monitor the plant regularly."
-            ]
+            ],
+
+            "expert_help":
+                "Consider consulting a local agricultural specialist if the condition continues or worsens."
         }
     )
 
 
 # ============================================================
-# USER-FRIENDLY WEB PREDICTION
+# CONFIDENCE DESCRIPTION
+# ============================================================
+
+def get_confidence_level(confidence):
+
+    percentage = confidence * 100
+
+    if percentage >= 85:
+        return (
+            "High confidence",
+            "The submitted information strongly matches the detected class."
+        )
+
+    elif percentage >= 70:
+        return (
+            "Moderate confidence",
+            "The result is reasonably supported, but visual confirmation is recommended."
+        )
+
+    elif percentage >= 50:
+        return (
+            "Low confidence",
+            "The result is uncertain. Try a clearer image and provide more symptoms."
+        )
+
+    else:
+        return (
+            "Very low confidence",
+            "The system is uncertain about this result. Consider submitting better information."
+        )
+
+
+# ============================================================
+# HTML ESCAPING
+# ============================================================
+
+def safe_text(text):
+
+    text = str(text)
+
+    replacements = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#039;"
+    }
+
+    for key, value in replacements.items():
+        text = text.replace(
+            key,
+            value
+        )
+
+    return text
+
+
+# ============================================================
+# MAIN USER-FACING PREDICTION
 # ============================================================
 
 def web_predict(
@@ -1040,21 +972,27 @@ def web_predict(
     print("STARTING PLANT ANALYSIS")
     print("==============================================")
 
-    # --------------------------------------------------------
-    # CHECK IMAGE
-    # --------------------------------------------------------
-
     if image is None:
 
         return (
-            "⚠️ **Please upload a clear leaf image.**",
+            """
+<div class="empty-result">
+
+    <div class="empty-icon">📷</div>
+
+    <h2>Upload a leaf image to begin</h2>
+
+    <p>
+        Please upload a clear photo of the affected leaf.
+        You can also describe the symptoms for a more
+        informative result.
+    </p>
+
+</div>
+""",
             "",
             ""
         )
-
-    # --------------------------------------------------------
-    # CLEAN SYMPTOMS
-    # --------------------------------------------------------
 
     if symptoms is None:
         symptoms = ""
@@ -1062,10 +1000,9 @@ def web_predict(
     symptoms = str(symptoms).strip()
 
     # ========================================================
-    # IMAGE PREDICTION
+    # IMAGE ANALYSIS
     # ========================================================
 
-    print("")
     print("Analyzing leaf image...")
 
     vision_result = vision_predict(
@@ -1073,20 +1010,16 @@ def web_predict(
     )
 
     # ========================================================
-    # COMBINE WITH SYMPTOMS
+    # SYMPTOM ANALYSIS + FUSION
     # ========================================================
 
     if symptoms:
 
-        print("")
-        print("Analyzing described symptoms...")
+        print("Analyzing symptoms...")
 
         text_result = text_predict(
             symptoms
         )
-
-        print("")
-        print("Combining available information...")
 
         fusion_result = fusion_predict(
             vision_result,
@@ -1097,18 +1030,22 @@ def web_predict(
             "final_disease"
         ]
 
+        final_confidence = fusion_result[
+            "final_confidence"
+        ]
+
         final_probabilities = fusion_result[
             "final_probabilities"
         ]
 
     else:
 
-        print("")
-        print("No symptom description provided.")
-        print("Using image result.")
-
         final_disease = vision_result[
             "disease"
+        ]
+
+        final_confidence = vision_result[
+            "confidence"
         ]
 
         final_probabilities = vision_result[
@@ -1116,83 +1053,256 @@ def web_predict(
         ]
 
     # ========================================================
-    # GET DISEASE INFORMATION
+    # INFORMATION
     # ========================================================
 
     disease_info = get_disease_info(
         final_disease
     )
 
+    confidence_label, confidence_message = (
+        get_confidence_level(
+            final_confidence
+        )
+    )
+
+    confidence_percentage = (
+        final_confidence * 100
+    )
+
     # ========================================================
-    # MAIN DIAGNOSIS CARD
+    # DIAGNOSIS CARD
     # ========================================================
 
     diagnosis_card = f"""
-# 🌿 Diagnosis: {final_disease}
+<div class="diagnosis-main">
 
----
+    <div class="diagnosis-header">
 
-### ❓ What is it?
+        <div class="diagnosis-icon">
+            🌿
+        </div>
 
-{disease_info["what_is_it"]}
+        <div>
 
----
+            <div class="result-label">
+                POSSIBLE PLANT CONDITION
+            </div>
 
-### 🔎 Why did this happen?
+            <h1>
+                {safe_text(final_disease)}
+            </h1>
 
-{disease_info["why_happens"]}
+            <p class="diagnosis-subtitle">
+                Based on the submitted plant information
+            </p>
 
----
+        </div>
 
-### 🩺 What should you do?
+    </div>
 
+
+    <div class="confidence-area">
+
+        <div class="confidence-top">
+
+            <span>
+                AI confidence
+            </span>
+
+            <strong>
+                {confidence_percentage:.1f}%
+            </strong>
+
+        </div>
+
+        <div class="confidence-bar">
+
+            <div
+                class="confidence-fill"
+                style="width:{min(confidence_percentage, 100):.1f}%"
+            ></div>
+
+        </div>
+
+        <div class="confidence-label">
+            {confidence_label}
+        </div>
+
+        <p class="confidence-message">
+            {confidence_message}
+        </p>
+
+    </div>
+
+
+    <div class="info-section">
+
+        <div class="info-heading">
+            <span class="info-number">01</span>
+
+            <div>
+                <h2>❓ What is it?</h2>
+                <p class="heading-caption">
+                    Understanding the possible condition
+                </p>
+            </div>
+        </div>
+
+        <p>
+            {safe_text(disease_info["what_is_it"])}
+        </p>
+
+    </div>
+
+
+    <div class="info-section">
+
+        <div class="info-heading">
+            <span class="info-number">02</span>
+
+            <div>
+                <h2>🔎 Why might this happen?</h2>
+                <p class="heading-caption">
+                    Common factors associated with the condition
+                </p>
+            </div>
+        </div>
+
+        <p>
+            {safe_text(disease_info["why_happens"])}
+        </p>
+
+    </div>
+
+
+    <div class="info-section action-section">
+
+        <div class="info-heading">
+
+            <span class="info-number">03</span>
+
+            <div>
+                <h2>🩺 What should I do?</h2>
+
+                <p class="heading-caption">
+                    Practical next steps
+                </p>
+            </div>
+
+        </div>
+
+        <div class="action-list">
 """
 
-    for action in disease_info["what_to_do"]:
+    for index, action in enumerate(
+        disease_info["what_to_do"],
+        start=1
+    ):
 
-        diagnosis_card += (
-            f"- {action}\n"
-        )
+        diagnosis_card += f"""
+            <div class="action-item">
+
+                <div class="action-check">
+                    {index}
+                </div>
+
+                <div>
+                    {safe_text(action)}
+                </div>
+
+            </div>
+"""
 
     diagnosis_card += """
+        </div>
 
----
+    </div>
 
-### 🛡️ How can you prevent it?
 
+    <div class="info-section prevention-section">
+
+        <div class="info-heading">
+
+            <span class="info-number">04</span>
+
+            <div>
+                <h2>🛡️ How can I prevent it?</h2>
+
+                <p class="heading-caption">
+                    Good practices for future plant health
+                </p>
+            </div>
+
+        </div>
+
+        <div class="prevention-list">
 """
 
     for prevention in disease_info["prevention"]:
 
-        diagnosis_card += (
-            f"- {prevention}\n"
-        )
+        diagnosis_card += f"""
+            <div class="prevention-item">
 
-    diagnosis_card += """
+                <span>✓</span>
 
----
+                <p>
+                    {safe_text(prevention)}
+                </p>
 
-### ⚠️ Important
+            </div>
+"""
 
-This is an AI-assisted prediction based on the
-submitted leaf image and symptoms. The result is
-not guaranteed to be a confirmed diagnosis.
+    diagnosis_card += f"""
+        </div>
 
-For serious, rapidly spreading, or uncertain
-plant problems, confirmation from a local
-agricultural specialist is recommended.
+    </div>
+
+
+    <div class="expert-section">
+
+        <div class="expert-icon">
+            👨‍🌾
+        </div>
+
+        <div>
+
+            <h3>
+                When should you seek expert help?
+            </h3>
+
+            <p>
+                {safe_text(disease_info["expert_help"])}
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <div class="result-note">
+
+        <strong>⚠️ Important:</strong>
+
+        This result is an AI-assisted prediction, not a
+        guaranteed laboratory diagnosis. If the plant is
+        severely damaged, rapidly declining, or the result
+        does not match what you observe, seek confirmation
+        from a qualified agricultural specialist.
+
+    </div>
+
+</div>
 """
 
     # ========================================================
-    # OTHER POSSIBLE RESULTS
+    # OTHER POSSIBILITIES
     # ========================================================
 
     top_predictions = get_top_predictions(
         final_probabilities,
         top_k=3
     )
-
-    other_results = ""
 
     alternatives = []
 
@@ -1201,28 +1311,74 @@ agricultural specialist is recommended.
         if item["disease"] != final_disease:
 
             alternatives.append(
-                item["disease"]
+                item
             )
+
+    other_results = ""
 
     if alternatives:
 
         other_results = """
-### 🔍 Other possible results
+<div class="alternatives-card">
 
-The system also considered:
+    <div class="alternative-title">
 
+        <span>🔍</span>
+
+        <div>
+            <h2>Other possible results</h2>
+
+            <p>
+                Other conditions the AI considered from the
+                submitted information.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="alternative-list">
 """
 
-        for disease in alternatives:
+        for item in alternatives:
 
-            other_results += (
-                f"- **{disease}**\n"
+            disease_name = safe_text(
+                item["disease"]
             )
 
-        other_results += """
+            percentage = (
+                item["confidence"] * 100
+            )
 
-> These are alternative AI predictions and are
-> not shown as confirmed diagnoses.
+            other_results += f"""
+        <div class="alternative-item">
+
+            <div class="alternative-name">
+
+                <span class="small-leaf">
+                    🌱
+                </span>
+
+                <strong>
+                    {disease_name}
+                </strong>
+
+            </div>
+
+            <div class="alternative-confidence">
+                {percentage:.1f}%
+            </div>
+
+        </div>
+"""
+
+        other_results += """
+    </div>
+
+    <p class="alternative-note">
+        These are alternative AI possibilities, not confirmed diagnoses.
+    </p>
+
+</div>
 """
 
     # ========================================================
@@ -1265,167 +1421,1791 @@ def clear_interface():
 
 
 # ============================================================
-# PROFESSIONAL WEBSITE CSS
+# PROFESSIONAL CSS
 # ============================================================
 
 custom_css = """
 
-.gradio-container {
-    max-width: 1250px !important;
-    margin: auto !important;
-    padding: 0 25px 35px 25px !important;
+/* =========================================================
+   GLOBAL
+   ========================================================= */
+
+:root {
+
+    --primary: #0f766e;
+    --primary-dark: #115e59;
+    --primary-light: #ccfbf1;
+
+    --green: #15803d;
+    --green-light: #dcfce7;
+
+    --text: #17251f;
+    --muted: #64748b;
+
+    --border: #e2e8f0;
+
+    --background: #f7faf8;
+
+    --card: #ffffff;
+
+    --shadow:
+        0 10px 35px rgba(15, 23, 42, 0.08);
+
+    --shadow-large:
+        0 20px 55px rgba(15, 23, 42, 0.12);
 }
 
+
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
+
+.gradio-container {
+
+    max-width: 1320px !important;
+
+    margin: auto !important;
+
+    padding:
+        0 22px 50px 22px !important;
+
+    background:
+        linear-gradient(
+            180deg,
+            #f8fffb 0%,
+            #f7faf8 45%,
+            #ffffff 100%
+        );
+}
+
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
 .hero {
+
+    position: relative;
+
+    overflow: hidden;
+
     text-align: center;
-    padding: 48px 30px 42px 30px;
-    margin: 10px 0 30px 0;
-    border-radius: 24px;
+
+    padding:
+        60px 35px 55px 35px;
+
+    margin:
+        10px 0 34px 0;
+
+    border-radius: 30px;
+
+    color: white;
+
+    background:
+
+        radial-gradient(
+            circle at 15% 20%,
+            rgba(255,255,255,0.14),
+            transparent 30%
+        ),
+
+        radial-gradient(
+            circle at 85% 80%,
+            rgba(255,255,255,0.12),
+            transparent 32%
+        ),
+
+        linear-gradient(
+            135deg,
+            #064e3b 0%,
+            #047857 50%,
+            #0d9488 100%
+        );
+
+    box-shadow:
+        0 20px 55px
+        rgba(6, 78, 59, 0.25);
+}
+
+
+.hero::before {
+
+    content: "🌿";
+
+    position: absolute;
+
+    font-size: 130px;
+
+    opacity: 0.08;
+
+    left: 4%;
+
+    top: -25px;
+
+    transform:
+        rotate(-15deg);
+}
+
+
+.hero::after {
+
+    content: "🍃";
+
+    position: absolute;
+
+    font-size: 110px;
+
+    opacity: 0.08;
+
+    right: 5%;
+
+    bottom: -30px;
+
+    transform:
+        rotate(18deg);
+}
+
+
+.hero h1 {
+
+    position: relative;
+
+    font-size:
+        48px !important;
+
+    line-height:
+        1.15 !important;
+
+    font-weight:
+        850 !important;
+
+    letter-spacing:
+        -1.5px;
+
+    margin:
+        0 0 15px 0 !important;
+}
+
+
+.hero p {
+
+    position: relative;
+
+    font-size:
+        19px !important;
+
+    line-height:
+        1.6 !important;
+
+    margin:
+        8px auto !important;
+
+    max-width:
+        800px;
+}
+
+
+.hero .subtitle {
+
+    font-size:
+        15px !important;
+
+    opacity:
+        0.86;
+
+    max-width:
+        720px;
+
+    margin-top:
+        14px !important;
+}
+
+
+/* =========================================================
+   SECTION TITLES
+   ========================================================= */
+
+.section-title {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        10px;
+
+    font-size:
+        26px;
+
+    font-weight:
+        800;
+
+    color:
+        var(--text);
+
+    margin:
+        30px 0 16px 0;
+}
+
+
+.section-subtitle {
+
+    color:
+        var(--muted);
+
+    font-size:
+        14px;
+
+    margin:
+        -8px 0 18px 0;
+}
+
+
+/* =========================================================
+   INPUT CARDS
+   ========================================================= */
+
+.input-card {
+
+    background:
+        rgba(255,255,255,0.96) !important;
+
+    border:
+        1px solid
+        var(--border) !important;
+
+    border-radius:
+        24px !important;
+
+    padding:
+        23px !important;
+
+    box-shadow:
+        var(--shadow);
+
+    transition:
+        all 0.25s ease;
+}
+
+
+.input-card:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 16px 40px
+        rgba(15, 23, 42, 0.10);
+}
+
+
+.input-card h3 {
+
+    color:
+        var(--text) !important;
+
+    font-size:
+        19px !important;
+
+    font-weight:
+        750 !important;
+}
+
+
+/* =========================================================
+   IMAGE UPLOAD
+   ========================================================= */
+
+.image-upload {
+
+    border-radius:
+        18px !important;
+
+    overflow:
+        hidden !important;
+
+    border:
+        2px dashed
+        #99f6e4 !important;
+
+    background:
+        #f0fdfa !important;
+
+    min-height:
+        340px;
+}
+
+
+/* =========================================================
+   TEXTBOX
+   ========================================================= */
+
+.input-card textarea {
+
+    border-radius:
+        15px !important;
+
+    border:
+        1px solid
+        #cbd5e1 !important;
+
+    line-height:
+        1.6 !important;
+}
+
+
+.input-card textarea:focus {
+
+    border-color:
+        var(--primary) !important;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(13,148,136,0.12) !important;
+}
+
+
+/* =========================================================
+   TIP BOX
+   ========================================================= */
+
+.tip-box {
+
+    background:
+        #f0fdfa;
+
+    border:
+        1px solid
+        #99f6e4;
+
+    border-radius:
+        15px;
+
+    padding:
+        15px 18px;
+
+    margin-top:
+        14px;
+
+    color:
+        #134e4a;
+
+    font-size:
+        14px;
+
+    line-height:
+        1.6;
+}
+
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+
+.analyze-button {
+
+    min-height:
+        60px !important;
+
+    border-radius:
+        16px !important;
+
+    font-size:
+        18px !important;
+
+    font-weight:
+        800 !important;
+
+    margin-top:
+        20px;
+
+    box-shadow:
+        0 10px 25px
+        rgba(15,118,110,0.25);
+
+    transition:
+        all 0.25s ease !important;
+}
+
+
+.analyze-button:hover {
+
+    transform:
+        translateY(-2px);
+
+    box-shadow:
+        0 14px 30px
+        rgba(15,118,110,0.30);
+}
+
+
+.clear-button {
+
+    min-height:
+        60px !important;
+
+    border-radius:
+        16px !important;
+
+    font-size:
+        17px !important;
+
+    font-weight:
+        700 !important;
+
+    margin-top:
+        20px;
+}
+
+
+/* =========================================================
+   HOW IT WORKS
+   ========================================================= */
+
+.workflow {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap:
+        18px;
+
+    margin:
+        20px 0 35px 0;
+}
+
+
+.workflow-card {
+
+    background:
+        #ffffff;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        20px;
+
+    padding:
+        23px;
+
+    box-shadow:
+        var(--shadow);
+}
+
+
+.workflow-icon {
+
+    width:
+        50px;
+
+    height:
+        50px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        15px;
+
+    background:
+        var(--primary-light);
+
+    font-size:
+        25px;
+
+    margin-bottom:
+        15px;
+}
+
+
+.workflow-card h3 {
+
+    margin:
+        0 0 8px 0;
+
+    font-size:
+        18px;
+
+    color:
+        var(--text);
+}
+
+
+.workflow-card p {
+
+    margin:
+        0;
+
+    color:
+        var(--muted);
+
+    font-size:
+        14px;
+
+    line-height:
+        1.6;
+}
+
+
+/* =========================================================
+   DIAGNOSIS
+   ========================================================= */
+
+.diagnosis-main {
+
+    background:
+        #ffffff;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        28px;
+
+    padding:
+        34px;
+
+    box-shadow:
+        var(--shadow-large);
+
+    margin-top:
+        10px;
+
+    overflow:
+        hidden;
+}
+
+
+/* =========================================================
+   DIAGNOSIS HEADER
+   ========================================================= */
+
+.diagnosis-header {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        20px;
+
+    padding-bottom:
+        25px;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+
+.diagnosis-icon {
+
+    flex:
+        0 0 auto;
+
+    width:
+        78px;
+
+    height:
+        78px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        22px;
 
     background:
         linear-gradient(
             135deg,
-            #064e3b 0%,
-            #047857 55%,
-            #059669 100%
+            #ccfbf1,
+            #dcfce7
         );
 
-    color: white;
+    font-size:
+        39px;
 
     box-shadow:
-        0 12px 30px rgba(0, 0, 0, 0.12);
+        inset 0 0 0 1px
+        rgba(15,118,110,0.08);
 }
 
-.hero h1 {
-    font-size: 44px !important;
-    font-weight: 800 !important;
-    margin: 0 0 12px 0 !important;
+
+.result-label {
+
+    font-size:
+        12px;
+
+    letter-spacing:
+        1.5px;
+
+    font-weight:
+        800;
+
+    color:
+        var(--primary);
+
+    margin-bottom:
+        5px;
 }
 
-.hero p {
-    font-size: 17px !important;
-    margin: 7px 0 !important;
+
+.diagnosis-header h1 {
+
+    font-size:
+        38px !important;
+
+    font-weight:
+        850 !important;
+
+    color:
+        var(--text) !important;
+
+    margin:
+        0 !important;
 }
 
-.hero .subtitle {
-    font-size: 15px !important;
-    opacity: 0.90;
+
+.diagnosis-subtitle {
+
+    margin:
+        6px 0 0 0;
+
+    color:
+        var(--muted);
+
+    font-size:
+        14px;
 }
 
-.section-title {
-    font-size: 25px;
-    font-weight: 750;
-    margin: 15px 0 12px 0;
+
+/* =========================================================
+   CONFIDENCE
+   ========================================================= */
+
+.confidence-area {
+
+    margin:
+        25px 0 10px 0;
+
+    padding:
+        20px;
+
+    border-radius:
+        18px;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px solid
+        #e2e8f0;
 }
 
-.input-card {
-    border-radius: 20px !important;
-    padding: 18px !important;
-    border: 1px solid #d1d5db !important;
+
+.confidence-top {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    margin-bottom:
+        10px;
+
+    color:
+        #475569;
+
+    font-size:
+        14px;
+
+    font-weight:
+        650;
+}
+
+
+.confidence-top strong {
+
+    color:
+        var(--primary);
+
+    font-size:
+        21px;
+
+    font-weight:
+        850;
+}
+
+
+.confidence-bar {
+
+    height:
+        11px;
+
+    width:
+        100%;
+
+    background:
+        #e2e8f0;
+
+    border-radius:
+        999px;
+
+    overflow:
+        hidden;
+}
+
+
+.confidence-fill {
+
+    height:
+        100%;
+
+    border-radius:
+        999px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #14b8a6,
+            #15803d
+        );
+
+    transition:
+        width 0.8s ease;
+}
+
+
+.confidence-label {
+
+    margin-top:
+        10px;
+
+    color:
+        var(--primary-dark);
+
+    font-weight:
+        800;
+
+    font-size:
+        14px;
+}
+
+
+.confidence-message {
+
+    margin:
+        4px 0 0 0;
+
+    color:
+        var(--muted);
+
+    font-size:
+        13px;
+
+    line-height:
+        1.5;
+}
+
+
+/* =========================================================
+   INFORMATION SECTIONS
+   ========================================================= */
+
+.info-section {
+
+    padding:
+        28px 0;
+
+    border-bottom:
+        1px solid
+        var(--border);
+}
+
+
+.info-section > p {
+
+    color:
+        #475569;
+
+    line-height:
+        1.75;
+
+    font-size:
+        15px;
+
+    margin:
+        14px 0 0 57px;
+}
+
+
+.info-heading {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        14px;
+}
+
+
+.info-number {
+
+    flex:
+        0 0 auto;
+
+    width:
+        42px;
+
+    height:
+        42px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        13px;
+
+    background:
+        #f0fdfa;
+
+    color:
+        var(--primary);
+
+    font-weight:
+        850;
+
+    font-size:
+        13px;
+}
+
+
+.info-heading h2 {
+
+    margin:
+        0;
+
+    font-size:
+        21px;
+
+    color:
+        var(--text);
+
+    font-weight:
+        800;
+}
+
+
+.heading-caption {
+
+    margin:
+        3px 0 0 0;
+
+    font-size:
+        12px;
+
+    color:
+        #94a3b8;
+}
+
+
+/* =========================================================
+   ACTION LIST
+   ========================================================= */
+
+.action-list {
+
+    margin:
+        18px 0 0 57px;
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        11px;
+}
+
+
+.action-item {
+
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    gap:
+        13px;
+
+    padding:
+        14px 16px;
+
+    border-radius:
+        14px;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px solid
+        #e2e8f0;
+
+    color:
+        #334155;
+
+    font-size:
+        14px;
+
+    line-height:
+        1.55;
+}
+
+
+.action-check {
+
+    flex:
+        0 0 auto;
+
+    width:
+        28px;
+
+    height:
+        28px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        9px;
+
+    background:
+        #dcfce7;
+
+    color:
+        #15803d;
+
+    font-size:
+        12px;
+
+    font-weight:
+        850;
+}
+
+
+/* =========================================================
+   PREVENTION
+   ========================================================= */
+
+.prevention-list {
+
+    margin:
+        18px 0 0 57px;
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap:
+        11px;
+}
+
+
+.prevention-item {
+
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    gap:
+        10px;
+
+    padding:
+        13px 15px;
+
+    border-radius:
+        13px;
+
+    background:
+        #f0fdf4;
+
+    border:
+        1px solid
+        #bbf7d0;
+}
+
+
+.prevention-item span {
+
+    color:
+        #15803d;
+
+    font-weight:
+        900;
+
+    font-size:
+        17px;
+}
+
+
+.prevention-item p {
+
+    margin:
+        0;
+
+    color:
+        #365314;
+
+    font-size:
+        14px;
+
+    line-height:
+        1.5;
+}
+
+
+/* =========================================================
+   EXPERT SECTION
+   ========================================================= */
+
+.expert-section {
+
+    display:
+        flex;
+
+    align-items:
+        flex-start;
+
+    gap:
+        16px;
+
+    margin:
+        27px 0;
+
+    padding:
+        20px;
+
+    border-radius:
+        18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #fff7ed,
+            #fffbeb
+        );
+
+    border:
+        1px solid
+        #fed7aa;
+}
+
+
+.expert-icon {
+
+    flex:
+        0 0 auto;
+
+    width:
+        48px;
+
+    height:
+        48px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        14px;
+
+    background:
+        #ffedd5;
+
+    font-size:
+        24px;
+}
+
+
+.expert-section h3 {
+
+    margin:
+        0 0 5px 0;
+
+    color:
+        #9a3412;
+
+    font-size:
+        16px;
+}
+
+
+.expert-section p {
+
+    margin:
+        0;
+
+    color:
+        #7c2d12;
+
+    font-size:
+        14px;
+
+    line-height:
+        1.6;
+}
+
+
+/* =========================================================
+   IMPORTANT NOTE
+   ========================================================= */
+
+.result-note {
+
+    padding:
+        16px 18px;
+
+    border-radius:
+        15px;
+
+    background:
+        #f8fafc;
+
+    color:
+        #64748b;
+
+    font-size:
+        12px;
+
+    line-height:
+        1.6;
+
+    border:
+        1px solid
+        #e2e8f0;
+}
+
+
+/* =========================================================
+   ALTERNATIVE RESULTS
+   ========================================================= */
+
+.alternatives-card {
+
+    background:
+        #ffffff;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius:
+        22px;
+
+    padding:
+        25px;
+
+    margin-top:
+        18px;
 
     box-shadow:
-        0 5px 18px rgba(0, 0, 0, 0.06);
+        var(--shadow);
 }
 
-.input-card textarea {
-    border-radius: 12px !important;
+
+.alternative-title {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        13px;
 }
 
-.image-upload {
-    border-radius: 18px !important;
-    overflow: hidden !important;
+
+.alternative-title > span {
+
+    width:
+        45px;
+
+    height:
+        45px;
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    border-radius:
+        13px;
+
+    background:
+        #f0fdfa;
+
+    font-size:
+        22px;
 }
 
-.analyze-button {
-    min-height: 56px !important;
-    border-radius: 14px !important;
-    font-size: 18px !important;
-    font-weight: 750 !important;
+
+.alternative-title h2 {
+
+    margin:
+        0;
+
+    color:
+        var(--text);
+
+    font-size:
+        19px;
+
+    font-weight:
+        800;
+}
+
+
+.alternative-title p {
+
+    margin:
+        3px 0 0 0;
+
+    color:
+        var(--muted);
+
+    font-size:
+        12px;
+}
+
+
+.alternative-list {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    gap:
+        9px;
+
+    margin-top:
+        18px;
+}
+
+
+.alternative-item {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        space-between;
+
+    padding:
+        13px 15px;
+
+    border-radius:
+        13px;
+
+    background:
+        #f8fafc;
+
+    border:
+        1px solid
+        #e2e8f0;
+}
+
+
+.alternative-name {
+
+    display:
+        flex;
+
+    align-items:
+        center;
+
+    gap:
+        9px;
+
+    color:
+        #334155;
+
+    font-size:
+        14px;
+}
+
+
+.small-leaf {
+
+    font-size:
+        17px;
+}
+
+
+.alternative-confidence {
+
+    color:
+        var(--primary);
+
+    font-weight:
+        800;
+
+    font-size:
+        13px;
+}
+
+
+.alternative-note {
+
+    margin:
+        15px 0 0 0;
+
+    color:
+        #94a3b8;
+
+    font-size:
+        11px;
+}
+
+
+/* =========================================================
+   EMPTY RESULT
+   ========================================================= */
+
+.empty-result {
+
+    text-align:
+        center;
+
+    padding:
+        55px 25px;
+
+    background:
+        #ffffff;
+
+    border:
+        1px dashed
+        #cbd5e1;
+
+    border-radius:
+        24px;
 
     box-shadow:
-        0 7px 18px rgba(4, 120, 87, 0.20);
+        var(--shadow);
 }
 
-.clear-button {
-    min-height: 56px !important;
-    border-radius: 14px !important;
-    font-size: 16px !important;
+
+.empty-icon {
+
+    font-size:
+        52px;
+
+    margin-bottom:
+        12px;
 }
 
-.result-card {
-    border-radius: 22px !important;
-    padding: 30px !important;
-    border: 1px solid #d1d5db !important;
 
-    box-shadow:
-        0 8px 25px rgba(0, 0, 0, 0.07);
+.empty-result h2 {
 
-    margin-top: 12px;
+    color:
+        var(--text);
+
+    margin:
+        0 0 8px 0;
+
+    font-size:
+        23px;
 }
 
-.result-card h1 {
-    font-size: 34px !important;
+
+.empty-result p {
+
+    max-width:
+        560px;
+
+    margin:
+        auto;
+
+    color:
+        var(--muted);
+
+    line-height:
+        1.6;
 }
 
-.result-card h3 {
-    margin-top: 20px !important;
+
+/* =========================================================
+   ABOUT SECTION
+   ========================================================= */
+
+.about-card {
+
+    background:
+        linear-gradient(
+            135deg,
+            #ecfdf5,
+            #f0fdfa
+        );
+
+    border:
+        1px solid
+        #a7f3d0;
+
+    border-radius:
+        24px;
+
+    padding:
+        28px;
+
+    margin-top:
+        35px;
 }
 
-.result-card li {
-    margin-bottom: 8px !important;
-    line-height: 1.55 !important;
+
+.about-card h2 {
+
+    margin:
+        0 0 10px 0;
+
+    color:
+        #064e3b;
+
+    font-size:
+        22px;
 }
 
-.top-card {
-    border-radius: 18px !important;
-    padding: 22px !important;
-    border: 1px solid #d1d5db !important;
 
-    box-shadow:
-        0 5px 18px rgba(0, 0, 0, 0.05);
+.about-card p {
 
-    margin-top: 18px;
+    color:
+        #365314;
+
+    line-height:
+        1.7;
+
+    font-size:
+        14px;
 }
 
-.info-box {
-    border-radius: 18px;
-    padding: 22px;
-    margin: 25px 0;
-    border: 1px solid #d1d5db;
+
+.about-grid {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        repeat(3, 1fr);
+
+    gap:
+        13px;
+
+    margin-top:
+        20px;
 }
+
+
+.about-item {
+
+    background:
+        rgba(255,255,255,0.7);
+
+    border:
+        1px solid
+        rgba(16,185,129,0.15);
+
+    border-radius:
+        15px;
+
+    padding:
+        16px;
+}
+
+
+.about-item strong {
+
+    display:
+        block;
+
+    color:
+        #065f46;
+
+    margin-bottom:
+        5px;
+
+    font-size:
+        14px;
+}
+
+
+.about-item span {
+
+    color:
+        #64748b;
+
+    font-size:
+        12px;
+
+    line-height:
+        1.5;
+}
+
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 .footer {
-    text-align: center;
-    margin-top: 40px;
-    padding: 25px 10px;
-    font-size: 13px;
-    opacity: 0.75;
-    border-top: 1px solid #d1d5db;
+
+    text-align:
+        center;
+
+    margin-top:
+        42px;
+
+    padding:
+        28px 10px;
+
+    border-top:
+        1px solid
+        #e2e8f0;
+
+    color:
+        #94a3b8;
+
+    font-size:
+        12px;
+
+    line-height:
+        1.7;
 }
+
+
+.footer strong {
+
+    color:
+        #475569;
+
+    font-size:
+        14px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 850px) {
+
+    .workflow {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+    .about-grid {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+    .prevention-list {
+
+        grid-template-columns:
+            1fr;
+
+    }
+
+}
+
 
 @media (max-width: 700px) {
 
     .gradio-container {
-        padding: 0 12px 25px 12px !important;
+
+        padding:
+            0 11px 30px 11px !important;
+
     }
+
 
     .hero {
-        padding: 32px 18px;
+
+        padding:
+            38px 20px;
+
+        border-radius:
+            22px;
+
     }
+
 
     .hero h1 {
-        font-size: 30px !important;
+
+        font-size:
+            32px !important;
+
+        letter-spacing:
+            -0.8px;
+
     }
+
 
     .hero p {
-        font-size: 14px !important;
+
+        font-size:
+            15px !important;
+
     }
 
-    .result-card h1 {
-        font-size: 27px !important;
+
+    .diagnosis-main {
+
+        padding:
+            22px 18px;
+
+        border-radius:
+            21px;
+
+    }
+
+
+    .diagnosis-header {
+
+        align-items:
+            flex-start;
+
+    }
+
+
+    .diagnosis-icon {
+
+        width:
+            58px;
+
+        height:
+            58px;
+
+        border-radius:
+            17px;
+
+        font-size:
+            29px;
+
+    }
+
+
+    .diagnosis-header h1 {
+
+        font-size:
+            27px !important;
+
+    }
+
+
+    .info-section > p {
+
+        margin-left:
+            0;
+
+    }
+
+
+    .action-list {
+
+        margin-left:
+            0;
+
+    }
+
+
+    .prevention-list {
+
+        margin-left:
+            0;
+
+    }
+
+
+    .expert-section {
+
+        padding:
+            16px;
+
+    }
+
+
+    .section-title {
+
+        font-size:
+            22px;
+
     }
 
 }
+
 
 """
 
@@ -1435,7 +3215,7 @@ custom_css = """
 # ============================================================
 
 with gr.Blocks(
-    title="Plant Disease Detection System"
+    title="Plant Disease Detection AI"
 ) as demo:
 
     # ========================================================
@@ -1445,17 +3225,96 @@ with gr.Blocks(
     gr.HTML("""
     <div class="hero">
 
-        <h1>🌿 Plant Disease Detection</h1>
+        <h1>
+            🌿 Plant Disease Detection AI
+        </h1>
 
         <p>
-            Identify possible plant diseases and learn
-            what you can do next.
+            Understand your plant's health with
+            AI-powered image and symptom analysis.
         </p>
 
         <p class="subtitle">
-            Upload a leaf photo and describe its symptoms
-            to get a possible diagnosis and practical guidance.
+            Upload a clear leaf photo, describe what you see,
+            and receive a possible diagnosis with practical
+            guidance for the next steps.
         </p>
+
+    </div>
+    """)
+
+
+    # ========================================================
+    # HOW IT WORKS
+    # ========================================================
+
+    gr.HTML("""
+    <div class="section-title">
+        🧠 How the system works
+    </div>
+
+    <div class="section-subtitle">
+        A simple three-step process designed to make
+        plant health analysis easy to understand.
+    </div>
+
+    <div class="workflow">
+
+        <div class="workflow-card">
+
+            <div class="workflow-icon">
+                📷
+            </div>
+
+            <h3>
+                1. Upload a leaf photo
+            </h3>
+
+            <p>
+                Provide a clear image showing the affected
+                part of the plant. A well-lit image gives
+                the system better visual information.
+            </p>
+
+        </div>
+
+
+        <div class="workflow-card">
+
+            <div class="workflow-icon">
+                📝
+            </div>
+
+            <h3>
+                2. Describe the symptoms
+            </h3>
+
+            <p>
+                Mention visible changes such as spots,
+                yellowing, curling, powdery surfaces,
+                drying, or unusual discoloration.
+            </p>
+
+        </div>
+
+
+        <div class="workflow-card">
+
+            <div class="workflow-icon">
+                🌱
+            </div>
+
+            <h3>
+                3. Get practical guidance
+            </h3>
+
+            <p>
+                The system provides a possible condition,
+                confidence information, explanations,
+                suggested actions, and prevention tips.
+            </p>
+
+        </div>
 
     </div>
     """)
@@ -1467,11 +3326,21 @@ with gr.Blocks(
 
     gr.HTML("""
     <div class="section-title">
-        🔎 Analyze Your Plant
+        🔎 Analyze your plant
+    </div>
+
+    <div class="section-subtitle">
+        For the best result, provide both a clear image
+        and a short description of what you observe.
     </div>
     """)
 
+
     with gr.Row():
+
+        # ====================================================
+        # IMAGE
+        # ====================================================
 
         with gr.Column(
             scale=1,
@@ -1484,14 +3353,30 @@ with gr.Blocks(
 
             image_input = gr.Image(
                 type="pil",
-                label="Leaf Image",
-                height=360
+                label="Plant leaf image",
+                height=350,
+                elem_classes=["image-upload"]
             )
 
-            gr.Markdown(
-                "Upload a clear image of the affected leaf."
-            )
+            gr.HTML("""
+            <div class="tip-box">
 
+                <strong>📸 Better image tips</strong>
+
+                <br>
+
+                • Use good lighting<br>
+                • Keep the leaf clearly visible<br>
+                • Avoid blurry photos<br>
+                • Show the affected area closely
+
+            </div>
+            """)
+
+
+        # ====================================================
+        # SYMPTOMS
+        # ====================================================
 
         with gr.Column(
             scale=1,
@@ -1499,27 +3384,35 @@ with gr.Blocks(
         ):
 
             gr.Markdown(
-                "### 📝 Describe Symptoms"
+                "### 📝 Describe What You See"
             )
 
             symptoms_input = gr.Textbox(
-                label="Symptoms",
+                label="Plant symptoms",
                 placeholder=(
-                    "Example:\n"
-                    "The leaves are curling and turning yellow. "
-                    "There are also small spots on the leaves."
+                    "Example:\n\n"
+                    "The leaves are turning yellow and curling. "
+                    "There are small dark spots on the leaves "
+                    "and the affected areas appear to be spreading."
                 ),
-                lines=9
+                lines=10
             )
 
-            gr.Markdown("""
-            💡 **Tip:** Describe visible symptoms such as:
+            gr.HTML("""
+            <div class="tip-box">
 
-            • Leaf color changes  
-            • Spots or lesions  
-            • Curling  
-            • Powdery coating  
-            • Drying or discoloration
+                <strong>💡 What should you describe?</strong>
+
+                <br>
+
+                • Leaf color changes<br>
+                • Spots or lesions<br>
+                • Curling or wilting<br>
+                • White or powdery coating<br>
+                • Dry or brown areas<br>
+                • Whether the problem is spreading
+
+            </div>
             """)
 
 
@@ -1530,13 +3423,13 @@ with gr.Blocks(
     with gr.Row():
 
         predict_button = gr.Button(
-            "🔍  Analyze Plant",
+            "🔍  Analyze My Plant",
             variant="primary",
             elem_classes=["analyze-button"]
         )
 
         clear_button = gr.Button(
-            "🗑️  Clear",
+            "↻  Start Over",
             variant="secondary",
             elem_classes=["clear-button"]
         )
@@ -1548,65 +3441,120 @@ with gr.Blocks(
 
     gr.HTML("""
     <div class="section-title">
-        🎯 Plant Disease Result
+        🎯 Your Plant Health Result
+    </div>
+
+    <div class="section-subtitle">
+        Review the possible condition and the recommended
+        next steps below.
     </div>
     """)
 
-    diagnosis_output = gr.Markdown(
-        visible=True,
+
+    diagnosis_output = gr.HTML(
+        value="""
+        <div class="empty-result">
+
+            <div class="empty-icon">
+                🌱
+            </div>
+
+            <h2>
+                Your result will appear here
+            </h2>
+
+            <p>
+                Upload a leaf image and click
+                <strong>Analyze My Plant</strong>
+                to begin.
+            </p>
+
+        </div>
+        """,
         elem_classes=["result-card"]
     )
 
 
     # ========================================================
-    # OTHER POSSIBLE RESULTS
+    # OTHER RESULTS
     # ========================================================
 
-    other_results_output = gr.Markdown(
-        visible=True,
+    other_results_output = gr.HTML(
+        value="",
         elem_classes=["top-card"]
     )
 
 
     # ========================================================
-    # HIDDEN TECHNICAL OUTPUT
-    # ========================================================
-    #
-    # This output is intentionally hidden.
-    # The user does not need to see internal model details.
-    #
-
-    technical_output = gr.Markdown(
-        visible=False
-    )
-
-
-    # ========================================================
-    # INFORMATION
+    # ABOUT SYSTEM
     # ========================================================
 
     gr.HTML("""
-    <div class="info-box">
+    <div class="about-card">
 
-        <h3>🌱 About This System</h3>
+        <h2>
+            🌱 About this Plant Health Assistant
+        </h2>
 
         <p>
-        This system uses artificial intelligence to analyze
-        plant leaf images and, when provided, the symptoms
-        described by the user.
+            This application uses machine learning to assist
+            with plant disease identification. It analyzes
+            visual information from a leaf image and can also
+            use the symptoms provided by the user.
         </p>
 
         <p>
-        It provides a possible disease identification together
-        with information about why the problem may occur and
-        what the user can do next.
+            The goal is not only to provide a possible disease
+            name, but also to help users understand the condition
+            and take sensible next steps.
         </p>
 
-        <p>
-        The result is an AI-assisted prediction and should be
-        confirmed by an agricultural specialist when the plant
-        problem is serious, spreading, or uncertain.
-        </p>
+
+        <div class="about-grid">
+
+            <div class="about-item">
+
+                <strong>
+                    👁️ Image Analysis
+                </strong>
+
+                <span>
+                    A MobileNetV2-based vision model analyzes
+                    the submitted plant image.
+                </span>
+
+            </div>
+
+
+            <div class="about-item">
+
+                <strong>
+                    📝 Symptom Analysis
+                </strong>
+
+                <span>
+                    A TF-IDF and calibrated SVM pipeline
+                    analyzes the described symptoms.
+                </span>
+
+            </div>
+
+
+            <div class="about-item">
+
+                <strong>
+                    🧠 Combined Assessment
+                </strong>
+
+                <span>
+                    When both inputs are provided, their
+                    prediction information is combined to
+                    produce the final result.
+                </span>
+
+            </div>
+
+        </div>
 
     </div>
     """)
@@ -1619,19 +3567,26 @@ with gr.Blocks(
     gr.HTML("""
     <div class="footer">
 
-        <b>🌿 Plant Disease Detection System</b>
-
-        <br><br>
-
-        AI-assisted plant disease identification
+        <strong>
+            🌿 Plant Disease Detection AI
+        </strong>
 
         <br>
 
-        16-class plant disease classification
+        AI-assisted plant health identification and guidance
 
         <br><br>
 
+        16-class plant disease classification
+
+        <br>
+
         Machine Learning Lab • CSE 0619 321L(1)
+
+        <br><br>
+
+        ⚠️ AI results are informational and should not
+        replace professional agricultural diagnosis.
 
     </div>
     """)
@@ -1650,7 +3605,7 @@ with gr.Blocks(
         outputs=[
             diagnosis_output,
             other_results_output,
-            technical_output
+            gr.Markdown(visible=False)
         ]
     )
 
@@ -1667,7 +3622,7 @@ with gr.Blocks(
             symptoms_input,
             diagnosis_output,
             other_results_output,
-            technical_output
+            gr.Markdown(visible=False)
         ]
     )
 
@@ -1680,6 +3635,7 @@ if __name__ == "__main__":
 
     print("==============================================")
     print("STARTING PLANT DISEASE DETECTION APPLICATION")
+    print("==============================================")
     print("Host:", RENDER_HOST)
     print("Port:", RENDER_PORT)
     print("==============================================")
@@ -1688,5 +3644,6 @@ if __name__ == "__main__":
         server_name=RENDER_HOST,
         server_port=RENDER_PORT,
         css=custom_css,
-        theme=gr.themes.Soft()
+        theme=gr.themes.Soft(),
+        show_error=True
     )
