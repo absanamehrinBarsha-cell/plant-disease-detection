@@ -912,49 +912,6 @@ def confidence_class(confidence):
 
 
 # ============================================================
-# INPUT VALIDATION / OUT-OF-DOMAIN GUARD
-# ============================================================
-
-# The disease classifier is trained to choose one of its known
-# plant-disease classes. It does not have a built-in "none of the
-# above" class, so unrelated images (people, animals, objects, etc.)
-# can otherwise be forced into a disease class.
-#
-# Keep this conservative: low-confidence image predictions are
-# rejected before symptom fusion, so text cannot accidentally make
-# an unrelated image look like a valid plant diagnosis.
-MIN_IMAGE_CONFIDENCE = 0.60
-MIN_IMAGE_MARGIN = 0.10
-
-
-def validate_plant_image(vision_result):
-
-    probabilities = np.asarray(
-        vision_result["probabilities"],
-        dtype=np.float32
-    )
-
-    if probabilities.size < 2:
-        return vision_result["confidence"] >= MIN_IMAGE_CONFIDENCE
-
-    sorted_probabilities = np.sort(probabilities)[::-1]
-    top_confidence = float(sorted_probabilities[0])
-    second_confidence = float(sorted_probabilities[1])
-    margin = top_confidence - second_confidence
-
-    print(
-        "Image input validation:",
-        f"top confidence={top_confidence * 100:.2f}%",
-        f"margin={margin * 100:.2f}%"
-    )
-
-    return (
-        top_confidence >= MIN_IMAGE_CONFIDENCE
-        and margin >= MIN_IMAGE_MARGIN
-    )
-
-
-# ============================================================
 # USER-FRIENDLY WEB PREDICTION
 # ============================================================
 
@@ -1002,42 +959,6 @@ def web_predict(
     vision_result = vision_predict(
         image
     )
-
-    # ========================================================
-    # REJECT UNRELATED / UNCERTAIN IMAGES
-    # ========================================================
-
-    if not validate_plant_image(vision_result):
-
-        print(
-            "Image rejected: the system cannot confidently verify "
-            "that the submitted image matches a supported plant/leaf."
-        )
-
-        return (
-            """
-            <div class="empty-result validation-result">
-                <div class="empty-icon">📷</div>
-                <h2>We need a clear plant leaf image</h2>
-                <p>
-                    The submitted image does not provide enough
-                    evidence for a reliable plant-disease prediction.
-                    Please upload a clear photo of an affected plant
-                    leaf and try again.
-                </p>
-                <div class="tip-box">
-                    <strong>For a better result</strong>
-                    <p>
-                        Keep one leaf clearly visible, use good lighting,
-                        and avoid photos of people, animals, objects, or
-                        very distant/blurry scenes.
-                    </p>
-                </div>
-            </div>
-            """,
-            "",
-            ""
-        )
 
     # ========================================================
     # FUSION
@@ -3587,9 +3508,271 @@ footer {
 
 
 /* =========================================================
+   UNIVERSAL THEME + READABILITY SAFETY
+   ========================================================= */
+html, body {
+    color-scheme: light dark;
+}
+
+.gradio-container {
+    --app-text: var(--text-dark);
+    --app-text-soft: var(--text);
+    --app-muted: var(--text-light);
+    --app-card: var(--white);
+    --app-border: var(--border);
+}
+
+.dark .gradio-container {
+    --app-text: #f8fafc;
+    --app-text-soft: #dbe7e1;
+    --app-muted: #b7c8c0;
+    --app-card: #111827;
+    --app-border: #334155;
+}
+
+.gradio-container,
+.gradio-container .prose,
+.gradio-container label,
+.gradio-container .label-wrap,
+.gradio-container .label-wrap span,
+.gradio-container .info,
+.gradio-container .block-info {
+    color: var(--app-text, #17251f) !important;
+}
+
+.gradio-container textarea,
+.gradio-container input,
+.gradio-container select {
+    color: var(--app-text, #17251f) !important;
+    background: var(--app-card, #ffffff) !important;
+    border-color: var(--app-border, #dbe4e1) !important;
+}
+
+.gradio-container textarea::placeholder,
+.gradio-container input::placeholder {
+    color: var(--app-muted, #64748b) !important;
+    opacity: 1 !important;
+}
+
+/* Generated result text always follows the active application palette. */
+.result-card h1, .result-card h2, .result-card h3,
+.result-card p, .result-card span, .result-card strong,
+.top-card h1, .top-card h2, .top-card h3, .top-card p,
+.top-card span, .top-card strong, .empty-result h2,
+.empty-result p {
+    text-shadow: none !important;
+}
+
+/* Keep intentionally dark cards readable even when the host theme is light. */
+.quick-card-dark, .diagnosis-top, .checklist-card,
+.quick-card-dark *, .diagnosis-top *, .checklist-card * {
+    color: #ffffff !important;
+}
+
+/* Keep the hero readable on every host theme/background. */
+.hero, .hero h1, .hero p, .hero .hero-subtitle,
+.hero .hero-description, .hero .hero-badge {
+    color: #ffffff !important;
+}
+
+/* Text on the lighter guidance cards stays dark and high contrast. */
+.quick-card-mint, .quick-card-soft,
+.quick-card-mint *, .quick-card-soft * {
+    color: #12372a !important;
+}
+
+/* Never allow long disease names or paragraphs to create horizontal scroll. */
+*, *::before, *::after {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-color-scheme: dark) {
+    /* Host OS dark mode: keep the application surface coherent. */
+    .gradio-container {
+        --app-text: #f8fafc;
+        --app-text-soft: #dbe7e1;
+        --app-muted: #b7c8c0;
+        --app-card: #111827;
+        --app-border: #334155;
+        background: #0b1220 !important;
+        color: #f8fafc !important;
+    }
+}
+
+/* =========================================================
    MOBILE
    ========================================================= */
 
+
+/* =========================================================
+   FINAL COLLAPSED TECHNICAL PANEL
+   ========================================================= */
+
+.technical-details-final {
+    margin: 34px 0 24px 0;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 2px solid #9ad8bb;
+    background: linear-gradient(135deg, #effcf4 0%, #e2f7ea 100%);
+    box-shadow: 0 14px 38px rgba(6, 78, 59, 0.10);
+}
+
+.technical-details-final summary {
+    list-style: none;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 58px 1fr 42px;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 22px;
+}
+
+.technical-details-final summary::-webkit-details-marker { display: none; }
+
+.technical-summary-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #064e3b, #059669);
+    color: white;
+    font-size: 25px;
+    box-shadow: 0 8px 20px rgba(4,120,87,.22);
+}
+
+.technical-summary-kicker {
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 1.5px;
+    color: #2f7b5c;
+    margin-bottom: 3px;
+}
+
+.technical-summary-title {
+    font-size: 21px;
+    font-weight: 850;
+    color: #064e3b;
+}
+
+.technical-summary-subtitle {
+    margin-top: 3px;
+    font-size: 13px;
+    color: #5e786c;
+}
+
+.technical-summary-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #047857;
+    font-size: 24px;
+    font-weight: 900;
+    transition: transform .2s ease;
+}
+
+.technical-details-final[open] .technical-summary-arrow {
+    transform: rotate(180deg);
+}
+
+.technical-content-final {
+    padding: 0 22px 22px 22px;
+    border-top: 1px solid #bfe4cf;
+}
+
+.technical-intro-final {
+    margin: 18px 0;
+    color: #49665a;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.technical-grid-final {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.technical-card-final {
+    padding: 18px;
+    border-radius: 17px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid #cfe9d9;
+}
+
+.technical-number-final {
+    color: #059669;
+    font-weight: 900;
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+
+.technical-card-final h3 {
+    margin: 0 0 7px 0;
+    color: #064e3b;
+    font-size: 15px;
+}
+
+.technical-card-final p {
+    margin: 0;
+    color: #557065;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.technical-facts-final {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.technical-facts-final > div {
+    padding: 13px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #d5ece0;
+    text-align: center;
+}
+
+.technical-facts-final strong,
+.technical-facts-final span {
+    display: block;
+}
+
+.technical-facts-final strong {
+    color: #047857;
+    font-size: 14px;
+}
+
+.technical-facts-final span {
+    margin-top: 3px;
+    color: #678075;
+    font-size: 11px;
+}
+
+.details-grid-single {
+    grid-template-columns: 1fr !important;
+}
+
+
+.footer-creator {
+    margin-top: 16px;
+    color: #b9dfcb;
+    font-size: 13px;
+    letter-spacing: .2px;
+}
+.footer-creator strong {
+    color: #ffffff;
+    font-weight: 850;
+}
 @media (max-width: 800px) {
 
     .gradio-container {
@@ -3772,6 +3955,211 @@ footer {
     }
 
 }
+
+
+/* =========================================================
+   PREMIUM INFORMATION LAYER
+   ========================================================= */
+
+body {
+    background:
+        radial-gradient(circle at 8% 8%, rgba(167,243,208,.55), transparent 22%),
+        radial-gradient(circle at 92% 20%, rgba(134,239,172,.32), transparent 24%),
+        radial-gradient(circle at 18% 78%, rgba(187,247,208,.38), transparent 26%),
+        linear-gradient(145deg, #e9f8ef 0%, #f7fcf8 42%, #e5f5eb 100%) !important;
+    background-attachment: fixed !important;
+}
+
+.gradio-container {
+    position: relative;
+}
+
+.gradio-container::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(22,163,74,.035) 0 2px, transparent 2px),
+        radial-gradient(circle at 70% 70%, rgba(6,78,59,.025) 0 2px, transparent 2px);
+    background-size: 42px 42px, 58px 58px;
+    z-index: -1;
+}
+
+.overview-panel,
+.model-panel,
+.details-card {
+    border: 1px solid rgba(125, 174, 148, .34);
+    box-shadow: 0 18px 50px rgba(6,78,59,.085);
+    border-radius: 28px;
+}
+
+.overview-panel {
+    padding: 30px;
+    margin: -6px 0 34px;
+    background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(236,253,245,.96));
+}
+
+.overview-intro { max-width: 900px; margin: 0 auto 24px; text-align: center; }
+.overview-kicker, .model-kicker {
+    color: #047857;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 1.8px;
+    margin-bottom: 8px;
+}
+.overview-intro h2, .model-heading h2 {
+    color: #064e3b;
+    font-size: 28px;
+    margin: 0 0 9px;
+    font-weight: 850;
+}
+.overview-intro p, .model-heading p { color: #47665a; line-height: 1.7; margin: 0; }
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+.quick-card {
+    border-radius: 21px;
+    padding: 20px;
+    display: flex;
+    gap: 14px;
+    min-height: 125px;
+    border: 1px solid rgba(6,78,59,.08);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.quick-card:hover { transform: translateY(-3px); box-shadow: 0 13px 28px rgba(6,78,59,.10); }
+.quick-card-dark { background: linear-gradient(145deg,#064e3b,#047857); color:#fff; }
+.quick-card-mint { background: linear-gradient(145deg,#d1fae5,#ecfdf5); color:#12372a; }
+.quick-card-soft { background: linear-gradient(145deg,#f0fdf4,#dcfce7); color:#12372a; }
+.quick-icon { font-size: 28px; line-height: 1; }
+.quick-card h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; }
+.quick-card p { margin: 0; font-size: 13px; line-height: 1.55; opacity: .9; }
+.quick-card-dark p { color: rgba(255,255,255,.84); }
+
+.quality-strip {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(6,78,59,.055);
+    color: #36564a;
+    font-size: 12px;
+}
+.quality-strip span { color:#16a34a; font-weight:900; margin-right:6px; }
+
+.model-panel {
+    margin: 0 0 34px;
+    padding: 30px;
+    background: linear-gradient(145deg, #f4fdf7, #dff6e8);
+}
+.model-heading { display:flex; gap:16px; align-items:flex-start; margin-bottom:24px; }
+.model-icon {
+    width:54px; height:54px; flex:0 0 54px; border-radius:17px;
+    display:flex; align-items:center; justify-content:center; font-size:27px;
+    background:linear-gradient(135deg,#064e3b,#16a34a); box-shadow:0 10px 24px rgba(6,78,59,.18);
+}
+.model-flow { display:grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items:center; gap:12px; }
+.model-step { background:rgba(255,255,255,.82); border:1px solid rgba(6,78,59,.10); border-radius:20px; padding:20px; min-height:170px; }
+.model-step-final { background:linear-gradient(145deg,#ecfdf5,#d1fae5); border-color:#a7f3d0; }
+.model-step-top { display:flex; justify-content:space-between; color:#047857; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+.model-step-top span { font-weight:900; opacity:.55; }
+.model-step h3 { margin:12px 0 7px; color:#064e3b; font-size:18px; }
+.model-step p { margin:0; color:#4a685c; font-size:13px; line-height:1.55; }
+.flow-arrow { color:#059669; font-size:28px; font-weight:900; }
+.model-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+.stat { text-align:center; padding:15px 10px; background:rgba(255,255,255,.72); border-radius:16px; border:1px solid rgba(6,78,59,.08); }
+.stat strong { display:block; color:#047857; font-size:19px; font-weight:850; }
+.stat span { color:#60786d; font-size:11px; }
+
+.details-grid { display:grid; grid-template-columns:1.25fr .9fr; gap:18px; margin-top:28px; }
+.details-card { background:rgba(255,255,255,.94); padding:25px; }
+.details-card-title { color:#064e3b; font-size:19px; font-weight:850; margin-bottom:7px; }
+.details-card-subtitle { color:#60786d; font-size:13px; line-height:1.55; margin-top:0; }
+.checklist-card { background:linear-gradient(145deg,#064e3b,#075e48); color:#fff; border:none; }
+.checklist-card .details-card-title { color:#fff; }
+.check-row { display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.10); }
+.check-row:last-child { border-bottom:0; }
+.check-row > span { width:28px; height:28px; border-radius:9px; background:rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center; color:#a7f3d0; font-size:10px; font-weight:900; flex:0 0 28px; }
+.check-row p { margin:0; color:rgba(255,255,255,.82); font-size:12px; line-height:1.55; }
+.check-row b { color:#fff; }
+
+/* Result cards become more visually prominent */
+.result-card, .top-card { border-radius:26px !important; border-color:#cfe7d8 !important; box-shadow:0 18px 45px rgba(6,78,59,.09) !important; }
+.diagnosis-top { background:linear-gradient(135deg,#022c22 0%,#064e3b 48%,#059669 100%) !important; }
+.confidence-section { background:linear-gradient(180deg,#f0fdf4,#ecfdf5) !important; }
+.info-card.why-card { background:linear-gradient(145deg,#f0fdf4,#dcfce7) !important; }
+.info-card.care-card { background:linear-gradient(145deg,#ecfdf5,#d1fae5) !important; }
+
+@media (max-width: 900px) {
+    .quick-grid, .quality-strip, .model-stats { grid-template-columns:1fr; }
+    .model-flow { grid-template-columns:1fr; }
+    .flow-arrow { transform:rotate(90deg); justify-self:center; }
+    .details-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width: 600px) {
+    .overview-panel, .model-panel, .details-card { padding:20px; border-radius:22px; }
+    .overview-intro h2, .model-heading h2 { font-size:23px; }
+    .model-heading { gap:11px; }
+    .model-icon { width:46px; height:46px; flex-basis:46px; font-size:23px; }
+
+    /* Prevent horizontal overflow on phones */
+    *, *::before, *::after { box-sizing: border-box !important; }
+    html, body { width:100% !important; max-width:100% !important; overflow-x:hidden !important; }
+    .gradio-container {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        padding-left:10px !important;
+        padding-right:10px !important;
+        overflow-x:hidden !important;
+    }
+    .gradio-row, .gradio-column, .input-card, .diagnosis-wrapper,
+    .result-card, .top-card, .overview-panel, .details-card,
+    .technical-details, .guide-wrapper, .alternatives-wrapper {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+    }
+    .gradio-row {
+        margin-left:0 !important;
+        margin-right:0 !important;
+        gap:12px !important;
+    }
+    .gradio-column {
+        padding-left:0 !important;
+        padding-right:0 !important;
+    }
+    .hero, .section-title, .confidence-heading, .confidence-bottom,
+    .section-heading, .technical-summary, .technical-grid, .technical-stats,
+    .details-grid, .quick-grid, .quality-strip {
+        max-width:100% !important;
+    }
+    .hero { margin-left:0 !important; margin-right:0 !important; }
+    .hero-subtitle, .hero-description, .diagnosis-description,
+    .info-card-text, .action-text, .prevention-item, .check-row p {
+        overflow-wrap:anywhere !important;
+        word-break:normal !important;
+    }
+    .diagnosis-top h1 {
+        overflow-wrap:anywhere !important;
+    }
+    .technical-details summary {
+        display:flex !important;
+        align-items:flex-start !important;
+        gap:10px !important;
+        flex-wrap:wrap !important;
+    }
+    .technical-details summary span {
+        width:100% !important;
+        margin-left:34px !important;
+    }
+}
 """
 
 
@@ -3780,7 +4168,7 @@ footer {
 # ============================================================
 
 with gr.Blocks(
-    title="PlantCare AI — Plant Disease Detection"
+    title="PlantCare AI — Intelligent Plant Disease Detection"
 ) as demo:
 
 
@@ -3817,6 +4205,59 @@ with gr.Blocks(
     </div>
     """)
 
+
+    # ========================================================
+    # QUICK START + MODEL OVERVIEW
+    # ========================================================
+
+    gr.HTML(f"""
+    <div class="overview-panel">
+
+        <div class="overview-intro">
+            <div class="overview-kicker">SMART • SIMPLE • EXPLAINABLE</div>
+            <h2>🌱 Your quick guide to a better result</h2>
+            <p>
+                PlantCare AI is designed to give users a possible plant-health
+                condition <b>plus the information needed to understand and act on it.</b>
+                For the strongest assessment, provide both a clear leaf image and a
+                short description of what you observe.
+            </p>
+        </div>
+
+        <div class="quick-grid">
+            <div class="quick-card quick-card-dark">
+                <div class="quick-icon">📷</div>
+                <div>
+                    <h3>1. Show the leaf</h3>
+                    <p>Use a bright, focused image. Keep the affected leaf large enough to see clearly.</p>
+                </div>
+            </div>
+
+            <div class="quick-card quick-card-mint">
+                <div class="quick-icon">📝</div>
+                <div>
+                    <h3>2. Tell us what you see</h3>
+                    <p>Mention color changes, spots, curling, powder, drying, wilting, or spreading symptoms.</p>
+                </div>
+            </div>
+
+            <div class="quick-card quick-card-soft">
+                <div class="quick-icon">🎯</div>
+                <div>
+                    <h3>3. Read before acting</h3>
+                    <p>Review the possible condition, confidence, reasons, recommended actions, and prevention tips.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="quality-strip">
+            <div><span>✓</span><b>Best image:</b> clear, well-lit, close-up leaf</div>
+            <div><span>✓</span><b>Best symptoms:</b> specific visible changes</div>
+            <div><span>✓</span><b>Best use:</b> educational & decision support</div>
+        </div>
+
+    </div>
+    """)
 
     # ========================================================
     # ANALYSIS TITLE
@@ -3861,19 +4302,6 @@ with gr.Blocks(
                 elem_classes=["image-upload"]
             )
 
-            gr.HTML("""
-            <div class="tip-box">
-
-                <strong>📸 For a better result</strong>
-
-                <p>
-                    Use a well-lit image where the leaf is
-                    clearly visible. Avoid extremely blurry,
-                    dark, or distant photographs.
-                </p>
-
-            </div>
-            """)
 
 
         with gr.Column(
@@ -3900,19 +4328,6 @@ with gr.Blocks(
                 lines=8
             )
 
-            gr.HTML("""
-            <div class="tip-box">
-
-                <strong>💡 Helpful symptoms to mention</strong>
-
-                <p>
-                    Leaf color changes • spots • lesions •
-                    curling • white powder • yellowing •
-                    drying • wilting • unusual patterns
-                </p>
-
-            </div>
-            """)
 
 
     # ========================================================
@@ -3989,209 +4404,54 @@ with gr.Blocks(
 
 
     # ========================================================
-    # USER GUIDE
+    # OPTIONAL TECHNICAL EXPLANATION — HIDDEN BY DEFAULT
     # ========================================================
 
-    gr.HTML("""
-    <div class="guide-wrapper">
+    gr.HTML(f"""
+    <details class="technical-details-final">
+        <summary>
+            <div class="technical-summary-icon">🧠</div>
+            <div class="technical-summary-text">
+                <div class="technical-summary-kicker">FOR CURIOUS USERS & STUDENTS</div>
+                <div class="technical-summary-title">How the AI assessment works</div>
+                <div class="technical-summary-subtitle">Click here to reveal the technology behind the result</div>
+            </div>
+            <div class="technical-summary-arrow">⌄</div>
+        </summary>
 
-        <div class="guide-header">
-
-            <h2>
-                🌱 How to Use PlantCare AI
-            </h2>
-
-            <p>
-                Follow three simple steps to get the most
-                useful assessment from the system.
+        <div class="technical-content-final">
+            <p class="technical-intro-final">
+                This section is optional. It explains, in simple language, what happens behind the result without changing the practical guidance shown above.
             </p>
 
+            <div class="technical-grid-final">
+                <div class="technical-card-final">
+                    <div class="technical-number-final">01</div>
+                    <h3>📷 Image analysis</h3>
+                    <p>A trained vision model examines visual patterns in the uploaded plant image.</p>
+                </div>
+
+                <div class="technical-card-final">
+                    <div class="technical-number-final">02</div>
+                    <h3>📝 Symptom analysis</h3>
+                    <p>When you describe symptoms, a text model analyzes the words and patterns in that description.</p>
+                </div>
+
+                <div class="technical-card-final">
+                    <div class="technical-number-final">03</div>
+                    <h3>🔗 Combined assessment</h3>
+                    <p>When both image and symptom information are available, the system combines the available evidence to produce the displayed result.</p>
+                </div>
+            </div>
+
+            <div class="technical-facts-final">
+                <div><strong>224 × 224</strong><span>Image input size</span></div>
+                <div><strong>Image + Symptoms</strong><span>Uses both when provided</span></div>
+                <div><strong>AI-assisted</strong><span>Not a laboratory diagnosis</span></div>
+            </div>
         </div>
-
-
-        <div class="guide-grid">
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    1
-                </div>
-
-                <h3>
-                    Upload a Leaf
-                </h3>
-
-                <p>
-                    Choose a clear photograph of the leaf
-                    showing the visible symptoms or damaged
-                    area.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    2
-                </div>
-
-                <h3>
-                    Describe Symptoms
-                </h3>
-
-                <p>
-                    Explain changes such as spots, yellowing,
-                    curling, discoloration, powdery growth,
-                    or drying.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    3
-                </div>
-
-                <h3>
-                    Review the Result
-                </h3>
-
-                <p>
-                    Read the possible condition, confidence,
-                    recommended actions, and prevention
-                    guidance before deciding what to do next.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
+    </details>
     """)
-
-
-    # ========================================================
-    # ABOUT SYSTEM
-    # ========================================================
-
-    gr.HTML("""
-    <div class="guide-wrapper">
-
-        <div class="guide-header">
-
-            <h2>
-                🧠 About the AI System
-            </h2>
-
-            <p>
-                Designed to make plant health information
-                easier to understand.
-            </p>
-
-        </div>
-
-
-        <div class="guide-grid">
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    📷
-                </div>
-
-                <h3>
-                    Image Analysis
-                </h3>
-
-                <p>
-                    The uploaded leaf image is analyzed by
-                    a trained deep-learning vision model to
-                    identify visual patterns associated with
-                    the supported plant conditions.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    📝
-                </div>
-
-                <h3>
-                    Symptom Analysis
-                </h3>
-
-                <p>
-                    When symptoms are provided, the system
-                    processes the description to identify
-                    disease-related language patterns.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    🌿
-                </div>
-
-                <h3>
-                    Combined Assessment
-                </h3>
-
-                <p>
-                    When both image and symptom information
-                    are available, they are combined to
-                    produce the final AI-assisted result.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-    """)
-
-
-    # ========================================================
-    # DISCLAIMER
-    # ========================================================
-
-    gr.HTML("""
-    <div class="result-disclaimer"
-         style="margin-top:30px;">
-
-        <div class="disclaimer-icon">
-            ⚠️
-        </div>
-
-        <div>
-
-            <strong>
-                Responsible Use of AI Results
-            </strong>
-
-            <p>
-                PlantCare AI provides an AI-assisted prediction
-                based on the information submitted by the user.
-                It is intended for educational and decision-support
-                purposes and does not replace professional
-                agricultural diagnosis. For serious, rapidly
-                spreading, or uncertain plant problems, consult
-                a qualified agricultural specialist.
-            </p>
-
-        </div>
-
-    </div>
-    """)
-
 
     # ========================================================
     # FOOTER
@@ -4217,7 +4477,7 @@ with gr.Blocks(
         <div class="footer-subtitle">
             AI-assisted plant health assessment
             <br>
-            16-class plant disease classification
+            Clear, practical plant-health guidance
         </div>
 
         <div class="footer-divider"></div>
@@ -4226,8 +4486,17 @@ with gr.Blocks(
             Machine Learning Lab • CSE 0619 321L(1)
         </div>
 
+        <div class="footer-divider"></div>
+
+        <div class="footer-creator">
+            Created by <strong>Absana Mehrin Barsha</strong>
+        </div>
+
     </div>
     """)
+
+
+    technical_state = gr.State("")
 
 
     # ========================================================
@@ -4243,7 +4512,7 @@ with gr.Blocks(
         outputs=[
             diagnosis_output,
             other_results_output,
-            gr.State()
+            technical_state
         ]
     )
 
@@ -4260,7 +4529,7 @@ with gr.Blocks(
             symptoms_input,
             diagnosis_output,
             other_results_output,
-            gr.State()
+            technical_state
         ]
     )
 
