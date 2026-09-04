@@ -3693,6 +3693,161 @@ footer {
     }
 
 }
+
+
+/* =========================================================
+   PREMIUM INFORMATION LAYER
+   ========================================================= */
+
+body {
+    background:
+        radial-gradient(circle at 8% 8%, rgba(167,243,208,.55), transparent 22%),
+        radial-gradient(circle at 92% 20%, rgba(134,239,172,.32), transparent 24%),
+        radial-gradient(circle at 18% 78%, rgba(187,247,208,.38), transparent 26%),
+        linear-gradient(145deg, #e9f8ef 0%, #f7fcf8 42%, #e5f5eb 100%) !important;
+    background-attachment: fixed !important;
+}
+
+.gradio-container {
+    position: relative;
+}
+
+.gradio-container::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+        radial-gradient(circle at 20% 30%, rgba(22,163,74,.035) 0 2px, transparent 2px),
+        radial-gradient(circle at 70% 70%, rgba(6,78,59,.025) 0 2px, transparent 2px);
+    background-size: 42px 42px, 58px 58px;
+    z-index: -1;
+}
+
+.overview-panel,
+.model-panel,
+.details-card {
+    border: 1px solid rgba(125, 174, 148, .34);
+    box-shadow: 0 18px 50px rgba(6,78,59,.085);
+    border-radius: 28px;
+}
+
+.overview-panel {
+    padding: 30px;
+    margin: -6px 0 34px;
+    background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(236,253,245,.96));
+}
+
+.overview-intro { max-width: 900px; margin: 0 auto 24px; text-align: center; }
+.overview-kicker, .model-kicker {
+    color: #047857;
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 1.8px;
+    margin-bottom: 8px;
+}
+.overview-intro h2, .model-heading h2 {
+    color: #064e3b;
+    font-size: 28px;
+    margin: 0 0 9px;
+    font-weight: 850;
+}
+.overview-intro p, .model-heading p { color: #47665a; line-height: 1.7; margin: 0; }
+
+.quick-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+.quick-card {
+    border-radius: 21px;
+    padding: 20px;
+    display: flex;
+    gap: 14px;
+    min-height: 125px;
+    border: 1px solid rgba(6,78,59,.08);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.quick-card:hover { transform: translateY(-3px); box-shadow: 0 13px 28px rgba(6,78,59,.10); }
+.quick-card-dark { background: linear-gradient(145deg,#064e3b,#047857); color:#fff; }
+.quick-card-mint { background: linear-gradient(145deg,#d1fae5,#ecfdf5); color:#12372a; }
+.quick-card-soft { background: linear-gradient(145deg,#f0fdf4,#dcfce7); color:#12372a; }
+.quick-icon { font-size: 28px; line-height: 1; }
+.quick-card h3 { margin: 0 0 6px; font-size: 17px; font-weight: 800; }
+.quick-card p { margin: 0; font-size: 13px; line-height: 1.55; opacity: .9; }
+.quick-card-dark p { color: rgba(255,255,255,.84); }
+
+.quality-strip {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 10px;
+    margin-top: 18px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(6,78,59,.055);
+    color: #36564a;
+    font-size: 12px;
+}
+.quality-strip span { color:#16a34a; font-weight:900; margin-right:6px; }
+
+.model-panel {
+    margin: 0 0 34px;
+    padding: 30px;
+    background: linear-gradient(145deg, #f4fdf7, #dff6e8);
+}
+.model-heading { display:flex; gap:16px; align-items:flex-start; margin-bottom:24px; }
+.model-icon {
+    width:54px; height:54px; flex:0 0 54px; border-radius:17px;
+    display:flex; align-items:center; justify-content:center; font-size:27px;
+    background:linear-gradient(135deg,#064e3b,#16a34a); box-shadow:0 10px 24px rgba(6,78,59,.18);
+}
+.model-flow { display:grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items:center; gap:12px; }
+.model-step { background:rgba(255,255,255,.82); border:1px solid rgba(6,78,59,.10); border-radius:20px; padding:20px; min-height:170px; }
+.model-step-final { background:linear-gradient(145deg,#ecfdf5,#d1fae5); border-color:#a7f3d0; }
+.model-step-top { display:flex; justify-content:space-between; color:#047857; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+.model-step-top span { font-weight:900; opacity:.55; }
+.model-step h3 { margin:12px 0 7px; color:#064e3b; font-size:18px; }
+.model-step p { margin:0; color:#4a685c; font-size:13px; line-height:1.55; }
+.flow-arrow { color:#059669; font-size:28px; font-weight:900; }
+.model-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px; }
+.stat { text-align:center; padding:15px 10px; background:rgba(255,255,255,.72); border-radius:16px; border:1px solid rgba(6,78,59,.08); }
+.stat strong { display:block; color:#047857; font-size:19px; font-weight:850; }
+.stat span { color:#60786d; font-size:11px; }
+
+.details-grid { display:grid; grid-template-columns:1.25fr .9fr; gap:18px; margin-top:28px; }
+.details-card { background:rgba(255,255,255,.94); padding:25px; }
+.details-card-title { color:#064e3b; font-size:19px; font-weight:850; margin-bottom:7px; }
+.details-card-subtitle { color:#60786d; font-size:13px; line-height:1.55; margin-top:0; }
+.class-cloud { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+.class-cloud span { padding:7px 11px; border-radius:999px; background:#ecfdf5; border:1px solid #c6eed8; color:#176b4d; font-size:11px; font-weight:700; }
+.checklist-card { background:linear-gradient(145deg,#064e3b,#075e48); color:#fff; border:none; }
+.checklist-card .details-card-title { color:#fff; }
+.check-row { display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.10); }
+.check-row:last-child { border-bottom:0; }
+.check-row > span { width:28px; height:28px; border-radius:9px; background:rgba(255,255,255,.13); display:flex; align-items:center; justify-content:center; color:#a7f3d0; font-size:10px; font-weight:900; flex:0 0 28px; }
+.check-row p { margin:0; color:rgba(255,255,255,.82); font-size:12px; line-height:1.55; }
+.check-row b { color:#fff; }
+
+/* Result cards become more visually prominent */
+.result-card, .top-card { border-radius:26px !important; border-color:#cfe7d8 !important; box-shadow:0 18px 45px rgba(6,78,59,.09) !important; }
+.diagnosis-top { background:linear-gradient(135deg,#022c22 0%,#064e3b 48%,#059669 100%) !important; }
+.confidence-section { background:linear-gradient(180deg,#f0fdf4,#ecfdf5) !important; }
+.info-card.why-card { background:linear-gradient(145deg,#f0fdf4,#dcfce7) !important; }
+.info-card.care-card { background:linear-gradient(145deg,#ecfdf5,#d1fae5) !important; }
+
+@media (max-width: 900px) {
+    .quick-grid, .quality-strip, .model-stats { grid-template-columns:1fr; }
+    .model-flow { grid-template-columns:1fr; }
+    .flow-arrow { transform:rotate(90deg); justify-self:center; }
+    .details-grid { grid-template-columns:1fr; }
+}
+
+@media (max-width: 600px) {
+    .overview-panel, .model-panel, .details-card { padding:20px; border-radius:22px; }
+    .overview-intro h2, .model-heading h2 { font-size:23px; }
+    .model-heading { gap:11px; }
+    .model-icon { width:46px; height:46px; flex-basis:46px; font-size:23px; }
+}
 """
 
 
@@ -3701,7 +3856,7 @@ footer {
 # ============================================================
 
 with gr.Blocks(
-    title="PlantCare AI — Plant Disease Detection"
+    title="PlantCare AI — Intelligent Plant Disease Detection"
 ) as demo:
 
 
@@ -3735,6 +3890,102 @@ with gr.Blocks(
 
         </div>
 
+    </div>
+    """)
+
+
+    # ========================================================
+    # QUICK START + MODEL OVERVIEW
+    # ========================================================
+
+    gr.HTML(f"""
+    <div class="overview-panel">
+
+        <div class="overview-intro">
+            <div class="overview-kicker">SMART • SIMPLE • EXPLAINABLE</div>
+            <h2>🌱 Your quick guide to a better result</h2>
+            <p>
+                PlantCare AI is designed to give users a possible plant-health
+                condition <b>plus the information needed to understand and act on it.</b>
+                For the strongest assessment, provide both a clear leaf image and a
+                short description of what you observe.
+            </p>
+        </div>
+
+        <div class="quick-grid">
+            <div class="quick-card quick-card-dark">
+                <div class="quick-icon">📷</div>
+                <div>
+                    <h3>1. Show the leaf</h3>
+                    <p>Use a bright, focused image. Keep the affected leaf large enough to see clearly.</p>
+                </div>
+            </div>
+
+            <div class="quick-card quick-card-mint">
+                <div class="quick-icon">📝</div>
+                <div>
+                    <h3>2. Tell us what you see</h3>
+                    <p>Mention color changes, spots, curling, powder, drying, wilting, or spreading symptoms.</p>
+                </div>
+            </div>
+
+            <div class="quick-card quick-card-soft">
+                <div class="quick-icon">🎯</div>
+                <div>
+                    <h3>3. Read before acting</h3>
+                    <p>Review the possible condition, confidence, reasons, recommended actions, and prevention tips.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="quality-strip">
+            <div><span>✓</span><b>Best image:</b> clear, well-lit, close-up leaf</div>
+            <div><span>✓</span><b>Best symptoms:</b> specific visible changes</div>
+            <div><span>✓</span><b>Best use:</b> educational & decision support</div>
+        </div>
+
+    </div>
+
+    <div class="model-panel">
+        <div class="model-heading">
+            <div class="model-icon">🧠</div>
+            <div>
+                <div class="model-kicker">WHAT HAPPENS BEHIND THE RESULT</div>
+                <h2>How the AI assessment works</h2>
+                <p>The technical process stays in the background; this section explains it in simple language.</p>
+            </div>
+        </div>
+
+        <div class="model-flow">
+            <div class="model-step">
+                <div class="model-step-top"><span>01</span><b>Vision model</b></div>
+                <h3>MobileNetV2</h3>
+                <p>Analyzes visual patterns in the uploaded leaf image and estimates the supported disease classes.</p>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="model-step">
+                <div class="model-step-top"><span>02</span><b>Symptom model</b></div>
+                <h3>TF-IDF + SVM</h3>
+                <p>When symptoms are entered, the text is converted into useful features and classified by a calibrated SVM.</p>
+            </div>
+
+            <div class="flow-arrow">→</div>
+
+            <div class="model-step model-step-final">
+                <div class="model-step-top"><span>03</span><b>Final assessment</b></div>
+                <h3>Combined evidence</h3>
+                <p>When both inputs are available, their probability information is combined to produce the displayed result.</p>
+            </div>
+        </div>
+
+        <div class="model-stats">
+            <div class="stat"><strong>{len(classes)}</strong><span>Supported classes</span></div>
+            <div class="stat"><strong>224×224</strong><span>Vision input size</span></div>
+            <div class="stat"><strong>50 / 50</strong><span>Image + symptom fusion</span></div>
+            <div class="stat"><strong>AI-assisted</strong><span>Not a laboratory diagnosis</span></div>
+        </div>
     </div>
     """)
 
@@ -4080,6 +4331,37 @@ with gr.Blocks(
     """)
 
 
+
+    # ========================================================
+    # SUPPORTED CLASSES + IMAGE CHECKLIST
+    # ========================================================
+
+    supported_names = " • ".join(str(name) for name in classes)
+
+    gr.HTML(f"""
+    <div class="details-grid">
+
+        <div class="details-card">
+            <div class="details-card-title">📚 Supported conditions</div>
+            <p class="details-card-subtitle">
+                The model is trained/classified for the following {len(classes)} output classes:
+            </p>
+            <div class="class-cloud">
+                {''.join(f'<span>{name}</span>' for name in classes)}
+            </div>
+        </div>
+
+        <div class="details-card checklist-card">
+            <div class="details-card-title">📸 Before you analyze</div>
+            <div class="check-row"><span>01</span><p><b>Clean view:</b> make sure the leaf is visible and not heavily covered by fingers or objects.</p></div>
+            <div class="check-row"><span>02</span><p><b>Good lighting:</b> avoid very dark photos, harsh glare, or strong shadows.</p></div>
+            <div class="check-row"><span>03</span><p><b>Useful context:</b> describe what changed, where it appears, and whether it is spreading.</p></div>
+            <div class="check-row"><span>04</span><p><b>Use the result carefully:</b> low-confidence or unusual cases deserve extra confirmation.</p></div>
+        </div>
+
+    </div>
+    """)
+
     # ========================================================
     # DISCLAIMER
     # ========================================================
@@ -4151,6 +4433,9 @@ with gr.Blocks(
     """)
 
 
+    technical_state = gr.State("")
+
+
     # ========================================================
     # ANALYZE EVENT
     # ========================================================
@@ -4164,7 +4449,7 @@ with gr.Blocks(
         outputs=[
             diagnosis_output,
             other_results_output,
-            gr.State()
+            technical_state
         ]
     )
 
@@ -4181,7 +4466,7 @@ with gr.Blocks(
             symptoms_input,
             diagnosis_output,
             other_results_output,
-            gr.State()
+            technical_state
         ]
     )
 
