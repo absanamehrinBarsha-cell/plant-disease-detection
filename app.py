@@ -4013,6 +4013,58 @@ body {
     .overview-intro h2, .model-heading h2 { font-size:23px; }
     .model-heading { gap:11px; }
     .model-icon { width:46px; height:46px; flex-basis:46px; font-size:23px; }
+
+    /* Prevent horizontal overflow on phones */
+    *, *::before, *::after { box-sizing: border-box !important; }
+    html, body { width:100% !important; max-width:100% !important; overflow-x:hidden !important; }
+    .gradio-container {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+        padding-left:10px !important;
+        padding-right:10px !important;
+        overflow-x:hidden !important;
+    }
+    .gradio-row, .gradio-column, .input-card, .diagnosis-wrapper,
+    .result-card, .top-card, .overview-panel, .details-card,
+    .technical-details, .guide-wrapper, .alternatives-wrapper {
+        width:100% !important;
+        max-width:100% !important;
+        min-width:0 !important;
+    }
+    .gradio-row {
+        margin-left:0 !important;
+        margin-right:0 !important;
+        gap:12px !important;
+    }
+    .gradio-column {
+        padding-left:0 !important;
+        padding-right:0 !important;
+    }
+    .hero, .section-title, .confidence-heading, .confidence-bottom,
+    .section-heading, .technical-summary, .technical-grid, .technical-stats,
+    .details-grid, .quick-grid, .quality-strip {
+        max-width:100% !important;
+    }
+    .hero { margin-left:0 !important; margin-right:0 !important; }
+    .hero-subtitle, .hero-description, .diagnosis-description,
+    .info-card-text, .action-text, .prevention-item, .check-row p {
+        overflow-wrap:anywhere !important;
+        word-break:normal !important;
+    }
+    .diagnosis-top h1 {
+        overflow-wrap:anywhere !important;
+    }
+    .technical-details summary {
+        display:flex !important;
+        align-items:flex-start !important;
+        gap:10px !important;
+        flex-wrap:wrap !important;
+    }
+    .technical-details summary span {
+        width:100% !important;
+        margin-left:34px !important;
+    }
 }
 """
 
