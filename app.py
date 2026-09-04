@@ -912,6 +912,189 @@ def confidence_class(confidence):
 
 
 # ============================================================
+# INPUT VALIDATION
+# ============================================================
+
+# The disease model was trained for plant/leaf disease classes.
+# It does NOT contain a separate "non-leaf" class, so we use
+# two gates before allowing a result:
+#   1. A lightweight visual leaf-likeness check.
+#   2. A minimum confidence check from the disease model.
+#
+# This prevents obvious photos of people, buildings, objects,
+# screenshots, food, etc. from being sent straight to the
+# disease prediction/fusion stage.
+
+LEAF_LIKE_MIN_RATIO = 0.18
+LEAF_VISION_MIN_CONFIDENCE = 0.55
+
+PLANT_CONTEXT_WORDS = {
+    "leaf", "leaves", "plant", "tree", "crop", "foliage",
+    "tomato", "grape", "grapevine", "citrus", "pepper",
+    "potato", "fruit", "vine"
+}
+
+SYMPTOM_WORDS = {
+    "yellow", "yellowing", "brown", "black", "white", "green",
+    "spot", "spots", "lesion", "lesions", "patch", "patches",
+    "curl", "curling", "curled", "wilting", "wilt", "dry",
+    "drying", "scorch", "blight", "rot", "mold", "mildew",
+    "powder", "powdery", "speckle", "speckled", "damage",
+    "damaged", "hole", "holes", "discolor", "discolored",
+    "discoloration", "necrosis", "streak", "streaks",
+    "ring", "rings", "mosaic", "droop", "drooping",
+    "pest", "mite", "mites", "virus", "bacterial", "fungal",
+    "healthy", "health"
+}
+
+
+def validate_symptom_text(symptoms):
+    """
+    Accept only a meaningful plant/leaf symptom description.
+
+    Requirements:
+      - At least 5 words.
+      - Must mention a plant/leaf context.
+      - Must contain at least one observable symptom/condition word.
+    """
+    cleaned = clean_text(symptoms)
+
+    if not cleaned:
+        return False, "Please describe the leaf symptoms before analyzing."
+
+    words = cleaned.split()
+
+    if len(words) < 5:
+        return (
+            False,
+            "Please enter a complete symptom description "
+            "(at least 5 words)."
+        )
+
+    has_plant_context = any(
+        word in PLANT_CONTEXT_WORDS
+        for word in words
+    )
+
+    has_symptom = any(
+        word in SYMPTOM_WORDS
+        for word in words
+    )
+
+    if not has_plant_context:
+        return (
+            False,
+            "The text does not appear to describe a plant or leaf. "
+            "Please describe what you see on the leaf."
+        )
+
+    if not has_symptom:
+        return (
+            False,
+            "The text does not contain a recognizable plant symptom. "
+            "Mention observations such as spots, yellowing, curling, "
+            "drying, mold, wilting, or similar changes."
+        )
+
+    return True, ""
+
+
+def leaf_likeness_score(image):
+    """
+    Lightweight visual gate.
+
+    This is intentionally a pre-filter, not a replacement for a
+    dedicated leaf/non-leaf classifier. It estimates how much of
+    the image contains natural foliage-like colors.
+
+    Returns a score between 0 and 1.
+    """
+    try:
+        arr = np.asarray(image)
+
+        if arr.ndim == 2:
+            arr = np.stack([arr, arr, arr], axis=-1)
+
+        if arr.ndim != 3 or arr.shape[-1] < 3:
+            return 0.0
+
+        arr = arr[..., :3].astype(np.float32) / 255.0
+
+        r = arr[..., 0]
+        g = arr[..., 1]
+        b = arr[..., 2]
+
+        max_c = np.max(arr, axis=-1)
+        min_c = np.min(arr, axis=-1)
+
+        saturation = (max_c - min_c) / (max_c + 1e-6)
+        brightness = np.mean(arr, axis=-1)
+
+        # Green foliage:
+        green = (
+            (g > r * 1.05) &
+            (g > b * 1.02) &
+            (g > 0.20) &
+            (saturation > 0.10)
+        )
+
+        # Yellow/brown foliage can occur in diseased or dried leaves.
+        yellow_brown = (
+            (r > b * 1.15) &
+            (g > b * 1.05) &
+            (r > 0.20) &
+            (g > 0.16) &
+            (saturation > 0.08)
+        )
+
+        # Dark green leaves should not be rejected just because
+        # their brightness is low.
+        dark_green = (
+            (g > r * 1.03) &
+            (g > b * 1.02) &
+            (g > 0.10) &
+            (saturation > 0.08)
+        )
+
+        foliage_mask = (
+            green |
+            yellow_brown |
+            dark_green
+        )
+
+        # Ignore a small amount of near-black/near-white background.
+        useful_pixels = (
+            (brightness > 0.05) &
+            (brightness < 0.98)
+        )
+
+        if np.sum(useful_pixels) == 0:
+            return 0.0
+
+        score = float(
+            np.sum(foliage_mask & useful_pixels)
+            /
+            np.sum(useful_pixels)
+        )
+
+        return max(0.0, min(score, 1.0))
+
+    except Exception as exc:
+        print("Leaf-likeness check failed:", exc)
+        return 0.0
+
+
+def input_error_html(title, message):
+    return f"""
+    <div class="empty-result">
+        <div class="empty-icon">⚠️</div>
+        <h2>{title}</h2>
+        <p>{message}</p>
+    </div>
+    """
+
+
+# ============================================================
 # USER-FRIENDLY WEB PREDICTION
 # ============================================================
 
@@ -927,19 +1110,16 @@ def web_predict(
     print("STARTING PLANT ANALYSIS")
     print("==============================================")
 
-    if image is None:
+    # ========================================================
+    # REQUIRE BOTH INPUTS
+    # ========================================================
 
+    if image is None:
         return (
-            """
-            <div class="empty-result">
-                <div class="empty-icon">🌱</div>
-                <h2>Ready to analyze your plant</h2>
-                <p>
-                    Upload a clear leaf image to begin the
-                    disease detection process.
-                </p>
-            </div>
-            """,
+            input_error_html(
+                "Leaf image required",
+                "Upload a clear photo of a leaf before analyzing."
+            ),
             "",
             ""
         )
@@ -949,64 +1129,134 @@ def web_predict(
 
     symptoms = str(symptoms).strip()
 
+    if not symptoms:
+        return (
+            input_error_html(
+                "Symptom description required",
+                "Please describe what you can see on the leaf. "
+                "No disease result will be generated without valid text."
+            ),
+            "",
+            ""
+        )
+
+    # ========================================================
+    # TEXT VALIDATION — DO THIS BEFORE MODEL FUSION
+    # ========================================================
+
+    text_valid, text_error = validate_symptom_text(symptoms)
+
+    if not text_valid:
+        print("Text rejected:", text_error)
+
+        return (
+            input_error_html(
+                "Invalid symptom description",
+                text_error
+            ),
+            "",
+            ""
+        )
+
+    print("Symptom text accepted.")
+
+    # ========================================================
+    # LEAF IMAGE PRE-FILTER
+    # ========================================================
+
+    leaf_score = leaf_likeness_score(image)
+
+    print(
+        f"Leaf-likeness score: {leaf_score * 100:.1f}%"
+    )
+
+    if leaf_score < LEAF_LIKE_MIN_RATIO:
+        print("Image rejected: does not look like a leaf.")
+
+        return (
+            input_error_html(
+                "Image rejected — leaf image required",
+                "The uploaded image does not appear to be a leaf. "
+                "Please upload a clear, close-up photo of a plant leaf."
+            ),
+            "",
+            ""
+        )
+
     # ========================================================
     # IMAGE PREDICTION
     # ========================================================
 
     print("")
-    print("Analyzing leaf image...")
+    print("Analyzing validated leaf image...")
 
     vision_result = vision_predict(
         image
     )
 
-    # ========================================================
-    # FUSION
-    # ========================================================
-
-    if symptoms:
-
-        print("")
-        print("Analyzing described symptoms...")
-
-        text_result = text_predict(
-            symptoms
+    # The disease classifier has no explicit "non-leaf" class.
+    # Therefore, do not accept a weak disease prediction.
+    if vision_result["confidence"] < LEAF_VISION_MIN_CONFIDENCE:
+        print(
+            "Image rejected: disease-model confidence too low "
+            f"({vision_result['confidence'] * 100:.2f}%)."
         )
 
-        fusion_result = fusion_predict(
-            vision_result,
-            text_result
+        return (
+            input_error_html(
+                "Image could not be verified",
+                "The image could not be confidently identified as "
+                "a suitable leaf for disease analysis. Please upload "
+                "a clearer close-up leaf image."
+            ),
+            "",
+            ""
         )
 
-        final_disease = fusion_result[
-            "final_disease"
-        ]
+    # ========================================================
+    # TEXT PREDICTION
+    # ========================================================
 
-        final_confidence = fusion_result[
-            "final_confidence"
-        ]
+    print("")
+    print("Analyzing validated symptom description...")
 
-        final_probabilities = fusion_result[
-            "final_probabilities"
-        ]
+    text_result = text_predict(
+        symptoms
+    )
 
-    else:
+    # text_predict returns a zero-confidence result for empty text,
+    # but empty text has already been rejected above.
+    if text_result["confidence"] <= 0:
+        return (
+            input_error_html(
+                "Invalid symptom description",
+                "The symptom description could not be processed. "
+                "Please describe visible changes on the leaf."
+            ),
+            "",
+            ""
+        )
 
-        print("")
-        print("No symptom description provided.")
-        print("Using image result.")
+    # ========================================================
+    # FUSION — ONLY REACHED AFTER BOTH GATES PASS
+    # ========================================================
 
-        final_disease = vision_result[
-            "disease"
-        ]
+    fusion_result = fusion_predict(
+        vision_result,
+        text_result
+    )
 
-        final_confidence = vision_result[
-            "confidence"
-        ]
+    final_disease = fusion_result[
+        "final_disease"
+    ]
 
-        final_probabilities = vision_result[
-            "probabilities"
-        ]
+    final_confidence = fusion_result[
+        "final_confidence"
+    ]
+
+    final_probabilities = fusion_result[
+        "final_probabilities"
+    ]
 
     # ========================================================
     # INFORMATION
@@ -4219,8 +4469,8 @@ with gr.Blocks(
             <p>
                 PlantCare AI is designed to give users a possible plant-health
                 condition <b>plus the information needed to understand and act on it.</b>
-                For the strongest assessment, provide both a clear leaf image and a
-                short description of what you observe.
+                A valid result requires both a clear leaf image and a meaningful
+                description of the symptoms you observe.
             </p>
         </div>
 
@@ -4292,7 +4542,7 @@ with gr.Blocks(
             )
 
             gr.Markdown(
-                "Upload a clear photo of the affected leaf."
+                "Upload a clear photo of the affected leaf. Non-leaf images are rejected."
             )
 
             image_input = gr.Image(
@@ -4314,7 +4564,7 @@ with gr.Blocks(
             )
 
             gr.Markdown(
-                "Adding symptoms can provide additional context."
+                "A valid symptom description is required for a result."
             )
 
             symptoms_input = gr.Textbox(
