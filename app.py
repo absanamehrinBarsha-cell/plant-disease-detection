@@ -4825,11 +4825,11 @@ with gr.Blocks(
     # INPUT AREA
     # ========================================================
 
-    with gr.Row():
+    with gr.Row(elem_classes=["analysis-input-row"]):
 
         with gr.Column(
             scale=1,
-            elem_classes=["input-card"]
+            elem_classes=["input-card", "image-input-card"]
         ):
 
             gr.Markdown(
@@ -4864,7 +4864,7 @@ with gr.Blocks(
 
         with gr.Column(
             scale=1,
-            elem_classes=["input-card"]
+            elem_classes=["input-card", "text-input-card"]
         ):
 
             gr.Markdown(
@@ -5265,3 +5265,99 @@ if __name__ == "__main__":
             neutral_hue="slate"
         )
     )
+
+/* =========================================================
+   FINAL PHONE FIX — ANALYSIS INPUTS
+   Desktop is intentionally untouched.
+   ========================================================= */
+@media (max-width: 700px) {
+
+    .analysis-input-row {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        align-items: stretch !important;
+        gap: 14px !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
+
+    .analysis-input-row > .image-input-card,
+    .analysis-input-row > .text-input-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        flex: 0 0 auto !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+    }
+
+    .analysis-input-row .image-input-card { order: 1 !important; }
+    .analysis-input-row .text-input-card { order: 2 !important; }
+
+    .analysis-input-row .image-upload {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        min-height: 0 !important;
+        height: auto !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+        background: #f0fdf4 !important;
+        border-color: #9acbb4 !important;
+    }
+
+    .analysis-input-row .image-upload img {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    .analysis-input-row .input-card {
+        background: #ffffff !important;
+        border-color: #cfe4d8 !important;
+        color: #12372a !important;
+        color-scheme: light !important;
+    }
+
+    .analysis-input-row .input-card h3,
+    .analysis-input-row .input-card p,
+    .analysis-input-row .input-card label,
+    .analysis-input-row .input-card span,
+    .analysis-input-row .input-card .wrap,
+    .analysis-input-row .input-card .block {
+        color: #12372a !important;
+    }
+
+    .analysis-input-row .text-input-card textarea,
+    .analysis-input-row .text-input-card textarea:focus {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        background: #f9fdfb !important;
+        color: #12372a !important;
+        -webkit-text-fill-color: #12372a !important;
+        border-color: #cfe4d8 !important;
+        caret-color: #047857 !important;
+        color-scheme: light !important;
+    }
+
+    .analysis-input-row .text-input-card textarea::placeholder {
+        color: #678075 !important;
+        opacity: 1 !important;
+        -webkit-text-fill-color: #678075 !important;
+    }
+
+    .analysis-input-row h3,
+    .analysis-input-row p,
+    .analysis-input-row label,
+    .analysis-input-row span,
+    .analysis-input-row textarea {
+        overflow-wrap: anywhere !important;
+        word-break: normal !important;
+    }
+}
