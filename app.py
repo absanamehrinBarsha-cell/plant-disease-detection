@@ -3507,190 +3507,178 @@ footer {
 }
 
 
-
-/* =========================================================
-   COLLAPSED TECHNICAL MODEL SECTION
-   ========================================================= */
-
-.technical-details {
-    margin-top: 35px;
-    border: 1px solid #cfe5d8;
-    border-radius: 24px;
-    background: linear-gradient(145deg, #f7fdf9, #e8f7ee);
-    box-shadow: 0 10px 30px rgba(6,78,59,.07);
-    overflow: hidden;
-}
-
-.technical-details summary {
-    list-style: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 14px;
-    padding: 21px 24px;
-    background: linear-gradient(135deg, #ecfdf5, #d1fae5);
-    color: #064e3b;
-    font-size: 17px;
-    font-weight: 850;
-}
-
-.technical-details summary::-webkit-details-marker {
-    display: none;
-}
-
-.technical-details summary::after {
-    content: "＋";
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 10px;
-    background: rgba(6,78,59,.08);
-    color: #047857;
-    font-size: 18px;
-    font-weight: 800;
-    flex: 0 0 30px;
-}
-
-.technical-details[open] summary::after {
-    content: "−";
-}
-
-.technical-details summary:hover {
-    background: linear-gradient(135deg, #dff7ea, #bff0d2);
-}
-
-.technical-summary-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 9px;
-}
-
-.technical-summary-hint {
-    color: #648076;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.technical-content {
-    padding: 23px 24px 25px;
-    border-top: 1px solid #d6e9dd;
-}
-
-.technical-intro {
-    margin-bottom: 20px;
-    color: #4f6f61;
-    font-size: 13px;
-    line-height: 1.65;
-}
-
-.technical-flow {
-    display: grid;
-    grid-template-columns: 1fr auto 1fr auto 1fr;
-    align-items: stretch;
-    gap: 12px;
-}
-
-.technical-step {
-    position: relative;
-    min-height: 195px;
-    padding: 21px;
-    border: 1px solid #d8e9df;
-    border-radius: 19px;
-    background: rgba(255,255,255,.82);
-}
-
-.technical-step-final {
-    background: linear-gradient(145deg, #ecfdf5, #d1fae5);
-    border-color: #a7e8c3;
-}
-
-.technical-step-number {
-    position: absolute;
-    top: 13px;
-    right: 15px;
-    color: #8bb7a0;
-    font-size: 11px;
-    font-weight: 900;
-}
-
-.technical-step-icon {
-    width: 46px;
-    height: 46px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 13px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-    font-size: 22px;
-}
-
-.technical-step-label {
-    color: #0f766e;
-    font-size: 10px;
-    font-weight: 850;
-    letter-spacing: 1.4px;
-}
-
-.technical-step h3 {
-    margin: 7px 0 7px;
-    color: #064e3b;
-    font-size: 18px;
-    font-weight: 850;
-}
-
-.technical-step p {
-    margin: 0;
-    color: #587367;
-    font-size: 12px;
-    line-height: 1.6;
-}
-
-.technical-arrow {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #059669;
-    font-size: 28px;
-    font-weight: 900;
-}
-
-.technical-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-    margin-top: 16px;
-}
-
-.technical-stat {
-    padding: 15px 10px;
-    border-radius: 15px;
-    text-align: center;
-    background: #064e3b;
-    color: white;
-}
-
-.technical-stat strong {
-    display: block;
-    margin-bottom: 4px;
-    color: #a7f3d0;
-    font-size: 17px;
-    font-weight: 850;
-}
-
-.technical-stat span {
-    color: rgba(255,255,255,.70);
-    font-size: 10px;
-}
-
-
 /* =========================================================
    MOBILE
    ========================================================= */
 
+
+/* =========================================================
+   FINAL COLLAPSED TECHNICAL PANEL
+   ========================================================= */
+
+.technical-details-final {
+    margin: 34px 0 24px 0;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 2px solid #9ad8bb;
+    background: linear-gradient(135deg, #effcf4 0%, #e2f7ea 100%);
+    box-shadow: 0 14px 38px rgba(6, 78, 59, 0.10);
+}
+
+.technical-details-final summary {
+    list-style: none;
+    cursor: pointer;
+    display: grid;
+    grid-template-columns: 58px 1fr 42px;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 22px;
+}
+
+.technical-details-final summary::-webkit-details-marker { display: none; }
+
+.technical-summary-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #064e3b, #059669);
+    color: white;
+    font-size: 25px;
+    box-shadow: 0 8px 20px rgba(4,120,87,.22);
+}
+
+.technical-summary-kicker {
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 1.5px;
+    color: #2f7b5c;
+    margin-bottom: 3px;
+}
+
+.technical-summary-title {
+    font-size: 21px;
+    font-weight: 850;
+    color: #064e3b;
+}
+
+.technical-summary-subtitle {
+    margin-top: 3px;
+    font-size: 13px;
+    color: #5e786c;
+}
+
+.technical-summary-arrow {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    color: #047857;
+    font-size: 24px;
+    font-weight: 900;
+    transition: transform .2s ease;
+}
+
+.technical-details-final[open] .technical-summary-arrow {
+    transform: rotate(180deg);
+}
+
+.technical-content-final {
+    padding: 0 22px 22px 22px;
+    border-top: 1px solid #bfe4cf;
+}
+
+.technical-intro-final {
+    margin: 18px 0;
+    color: #49665a;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.technical-grid-final {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.technical-card-final {
+    padding: 18px;
+    border-radius: 17px;
+    background: rgba(255,255,255,.78);
+    border: 1px solid #cfe9d9;
+}
+
+.technical-number-final {
+    color: #059669;
+    font-weight: 900;
+    font-size: 12px;
+    margin-bottom: 7px;
+}
+
+.technical-card-final h3 {
+    margin: 0 0 7px 0;
+    color: #064e3b;
+    font-size: 15px;
+}
+
+.technical-card-final p {
+    margin: 0;
+    color: #557065;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.technical-facts-final {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.technical-facts-final > div {
+    padding: 13px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #d5ece0;
+    text-align: center;
+}
+
+.technical-facts-final strong,
+.technical-facts-final span {
+    display: block;
+}
+
+.technical-facts-final strong {
+    color: #047857;
+    font-size: 14px;
+}
+
+.technical-facts-final span {
+    margin-top: 3px;
+    color: #678075;
+    font-size: 11px;
+}
+
+.details-grid-single {
+    grid-template-columns: 1fr !important;
+}
+
+
+.footer-creator {
+    margin-top: 16px;
+    color: #b9dfcb;
+    font-size: 13px;
+    letter-spacing: .2px;
+}
+.footer-creator strong {
+    color: #ffffff;
+    font-weight: 850;
+}
 @media (max-width: 800px) {
 
     .gradio-container {
@@ -3998,8 +3986,6 @@ body {
 .details-card { background:rgba(255,255,255,.94); padding:25px; }
 .details-card-title { color:#064e3b; font-size:19px; font-weight:850; margin-bottom:7px; }
 .details-card-subtitle { color:#60786d; font-size:13px; line-height:1.55; margin-top:0; }
-.class-cloud { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-.class-cloud span { padding:7px 11px; border-radius:999px; background:#ecfdf5; border:1px solid #c6eed8; color:#176b4d; font-size:11px; font-weight:700; }
 .checklist-card { background:linear-gradient(145deg,#064e3b,#075e48); color:#fff; border:none; }
 .checklist-card .details-card-title { color:#fff; }
 .check-row { display:flex; gap:11px; align-items:flex-start; padding:11px 0; border-bottom:1px solid rgba(255,255,255,.10); }
@@ -4125,10 +4111,7 @@ with gr.Blocks(
         </div>
 
     </div>
-
-
     """)
-
 
     # ========================================================
     # ANALYSIS TITLE
@@ -4386,110 +4369,11 @@ with gr.Blocks(
 
 
     # ========================================================
-    # ABOUT SYSTEM
+    # BEFORE YOU ANALYZE
     # ========================================================
-
-    gr.HTML("""
-    <div class="guide-wrapper">
-
-        <div class="guide-header">
-
-            <h2>
-                🧠 About the AI System
-            </h2>
-
-            <p>
-                Designed to make plant health information
-                easier to understand.
-            </p>
-
-        </div>
-
-
-        <div class="guide-grid">
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    📷
-                </div>
-
-                <h3>
-                    Image Analysis
-                </h3>
-
-                <p>
-                    The uploaded leaf image is analyzed by
-                    a trained deep-learning vision model to
-                    identify visual patterns associated with
-                    the supported plant conditions.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    📝
-                </div>
-
-                <h3>
-                    Symptom Analysis
-                </h3>
-
-                <p>
-                    When symptoms are provided, the system
-                    processes the description to identify
-                    disease-related language patterns.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    🌿
-                </div>
-
-                <h3>
-                    Combined Assessment
-                </h3>
-
-                <p>
-                    When both image and symptom information
-                    are available, they are combined to
-                    produce the final AI-assisted result.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-    """)
-
-
-
-    # ========================================================
-    # SUPPORTED CLASSES + IMAGE CHECKLIST
-    # ========================================================
-
-    supported_names = " • ".join(str(name) for name in classes)
 
     gr.HTML(f"""
-    <div class="details-grid">
-
-        <div class="details-card">
-            <div class="details-card-title">📚 Supported conditions</div>
-            <p class="details-card-subtitle">
-                The model is trained/classified for the following {len(classes)} output classes:
-            </p>
-            <div class="class-cloud">
-                {''.join(f'<span>{name}</span>' for name in classes)}
-            </div>
-        </div>
+    <div class="details-grid details-grid-single">
 
         <div class="details-card checklist-card">
             <div class="details-card-title">📸 Before you analyze</div>
@@ -4501,159 +4385,6 @@ with gr.Blocks(
 
     </div>
     """)
-
-
-    # ========================================================
-    # TECHNICAL MODEL EXPLANATION
-    # ========================================================
-    #
-    # Shown after the user-facing result and guidance.
-    # Collapsed by default so regular users see the practical
-    # information first, while the examiner can expand it.
-    #
-
-    gr.HTML(f"""
-    <details class="technical-details">
-
-        <summary>
-            <span class="technical-summary-title">🧠 How the AI works</span>
-            <span class="technical-summary-hint">Click to understand the model</span>
-        </summary>
-
-        <div class="technical-content">
-
-            <div class="technical-intro">
-                <strong>Behind the scenes:</strong>
-                the system uses image analysis and optional symptom
-                analysis. This technical explanation is kept separate
-                from the main diagnosis so users can focus on the
-                practical guidance first.
-            </div>
-
-            <div class="technical-flow">
-
-                <div class="technical-step">
-
-                    <div class="technical-step-number">
-                        01
-                    </div>
-
-                    <div class="technical-step-icon">
-                        👁️
-                    </div>
-
-                    <div class="technical-step-label">
-                        IMAGE MODEL
-                    </div>
-
-                    <h3>
-                        MobileNetV2
-                    </h3>
-
-                    <p>
-                        Analyzes visual patterns in the uploaded leaf
-                        image and estimates which supported condition
-                        best matches the image.
-                    </p>
-
-                </div>
-
-
-                <div class="technical-arrow">
-                    →
-                </div>
-
-
-                <div class="technical-step">
-
-                    <div class="technical-step-number">
-                        02
-                    </div>
-
-                    <div class="technical-step-icon">
-                        📝
-                    </div>
-
-                    <div class="technical-step-label">
-                        SYMPTOM MODEL
-                    </div>
-
-                    <h3>
-                        TF-IDF + SVM
-                    </h3>
-
-                    <p>
-                        When symptoms are entered, the text is converted
-                        into numerical features and classified using the
-                        trained symptom model.
-                    </p>
-
-                </div>
-
-
-                <div class="technical-arrow">
-                    →
-                </div>
-
-
-                <div class="technical-step technical-step-final">
-
-                    <div class="technical-step-number">
-                        03
-                    </div>
-
-                    <div class="technical-step-icon">
-                        🌿
-                    </div>
-
-                    <div class="technical-step-label">
-                        FINAL ASSESSMENT
-                    </div>
-
-                    <h3>
-                        Combined Evidence
-                    </h3>
-
-                    <p>
-                        When both image and symptom information are
-                        available, their prediction information is
-                        combined to produce the displayed assessment.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="technical-stats">
-
-                <div class="technical-stat">
-                    <strong>{len(classes)}</strong>
-                    <span>Supported classes</span>
-                </div>
-
-                <div class="technical-stat">
-                    <strong>224 × 224</strong>
-                    <span>Vision input size</span>
-                </div>
-
-                <div class="technical-stat">
-                    <strong>2 inputs</strong>
-                    <span>Image + symptoms</span>
-                </div>
-
-                <div class="technical-stat">
-                    <strong>AI-assisted</strong>
-                    <span>Not a laboratory diagnosis</span>
-                </div>
-
-            </div>
-
-        </div>
-
-    </details>
-    """)
-
 
     # ========================================================
     # DISCLAIMER
@@ -4690,6 +4421,56 @@ with gr.Blocks(
 
 
     # ========================================================
+    # OPTIONAL TECHNICAL EXPLANATION — HIDDEN BY DEFAULT
+    # ========================================================
+
+    gr.HTML(f"""
+    <details class="technical-details-final">
+        <summary>
+            <div class="technical-summary-icon">🧠</div>
+            <div class="technical-summary-text">
+                <div class="technical-summary-kicker">FOR CURIOUS USERS & STUDENTS</div>
+                <div class="technical-summary-title">How the AI assessment works</div>
+                <div class="technical-summary-subtitle">Click here to reveal the technology behind the result</div>
+            </div>
+            <div class="technical-summary-arrow">⌄</div>
+        </summary>
+
+        <div class="technical-content-final">
+            <p class="technical-intro-final">
+                This section is optional. It explains, in simple language, what happens behind the result without changing the practical guidance shown above.
+            </p>
+
+            <div class="technical-grid-final">
+                <div class="technical-card-final">
+                    <div class="technical-number-final">01</div>
+                    <h3>📷 Image analysis</h3>
+                    <p>A trained vision model examines visual patterns in the uploaded plant image.</p>
+                </div>
+
+                <div class="technical-card-final">
+                    <div class="technical-number-final">02</div>
+                    <h3>📝 Symptom analysis</h3>
+                    <p>When you describe symptoms, a text model analyzes the words and patterns in that description.</p>
+                </div>
+
+                <div class="technical-card-final">
+                    <div class="technical-number-final">03</div>
+                    <h3>🔗 Combined assessment</h3>
+                    <p>When both image and symptom information are available, the system combines the available evidence to produce the displayed result.</p>
+                </div>
+            </div>
+
+            <div class="technical-facts-final">
+                <div><strong>224 × 224</strong><span>Image input size</span></div>
+                <div><strong>Image + Symptoms</strong><span>Uses both when provided</span></div>
+                <div><strong>AI-assisted</strong><span>Not a laboratory diagnosis</span></div>
+            </div>
+        </div>
+    </details>
+    """)
+
+    # ========================================================
     # FOOTER
     # ========================================================
 
@@ -4713,13 +4494,19 @@ with gr.Blocks(
         <div class="footer-subtitle">
             AI-assisted plant health assessment
             <br>
-            16-class plant disease classification
+            Clear, practical plant-health guidance
         </div>
 
         <div class="footer-divider"></div>
 
         <div class="footer-subtitle">
             Machine Learning Lab • CSE 0619 321L(1)
+        </div>
+
+        <div class="footer-divider"></div>
+
+        <div class="footer-creator">
+            Created by <strong>Absana Mehrin Barsha</strong>
         </div>
 
     </div>
