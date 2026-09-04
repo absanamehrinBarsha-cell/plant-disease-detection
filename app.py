@@ -4280,65 +4280,6 @@ gradio-app {
         margin: 0 !important;
     }
 
-    /* =========================================================
-       ANALYZE YOUR PLANT — PHONE ONLY
-       Keep the desktop layout untouched. On phones, the image
-       and symptom inputs become two clean full-width cards.
-       ========================================================= */
-    .analysis-input-row {
-        display: flex !important;
-        flex-direction: column !important;
-        flex-wrap: nowrap !important;
-        width: 100% !important;
-        gap: 14px !important;
-        margin: 0 !important;
-    }
-
-    .analysis-input-row > .gradio-column {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        flex: 0 0 100% !important;
-        margin: 0 !important;
-    }
-
-    .analysis-input-row .input-card {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-        background: #ffffff !important;
-        color: #12372a !important;
-    }
-
-    .analysis-input-row .input-card h1,
-    .analysis-input-row .input-card h2,
-    .analysis-input-row .input-card h3,
-    .analysis-input-row .input-card p,
-    .analysis-input-row .input-card label,
-    .analysis-input-row .input-card span {
-        color: #12372a !important;
-    }
-
-    /* Remove dark/theme backgrounds from the phone input widgets. */
-    .analysis-input-row .input-card .block,
-    .analysis-input-row .input-card .form,
-    .analysis-input-row .input-card .wrap,
-    .analysis-input-row .input-card .image-container,
-    .analysis-input-row .input-card .upload-container,
-    .analysis-input-row .input-card textarea,
-    .analysis-input-row .input-card input {
-        background: #ffffff !important;
-        color: #12372a !important;
-        border-color: #cfe7d8 !important;
-    }
-
-    .analysis-input-row .input-card textarea::placeholder,
-    .analysis-input-row .input-card input::placeholder {
-        color: #6b8176 !important;
-        opacity: 1 !important;
-    }
-
     .image-upload {
         width: 100% !important;
         max-width: 100% !important;
@@ -4440,6 +4381,330 @@ gradio-app {
 }
 
 }
+
+/* =========================================================
+   CLEAN PHONE UI — LIGHT BACKGROUND + ANALYZE SECTION FIX
+   This is a mobile-only override. Desktop styles are untouched.
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+    /* ---- Force Gradio's theme itself to stay light ---- */
+    :root,
+    gradio-app,
+    body,
+    #root {
+        --body-background-fill: #f5fbf7 !important;
+        --background-fill-primary: #ffffff !important;
+        --background-fill-secondary: #eef8f1 !important;
+        --block-background-fill: #ffffff !important;
+        --block-background-fill-secondary: #f7fcf9 !important;
+        --panel-background-fill: #ffffff !important;
+        --input-background-fill: #ffffff !important;
+        --input-background-fill-focus: #ffffff !important;
+        --button-secondary-background-fill: #ffffff !important;
+        --button-secondary-background-fill-hover: #f0f8f3 !important;
+        --border-color-primary: #d7e8dd !important;
+        --border-color-accent: #a8d5ba !important;
+        --body-text-color: #12372a !important;
+        --body-text-color-subdued: #5b7467 !important;
+        color-scheme: light !important;
+    }
+
+    html,
+    body,
+    gradio-app,
+    #root,
+    .main {
+        background: #f5fbf7 !important;
+        color: #12372a !important;
+    }
+
+    body {
+        background-image:
+            radial-gradient(circle at 10% 0%, rgba(167,243,208,.28), transparent 24%),
+            radial-gradient(circle at 95% 12%, rgba(187,247,208,.20), transparent 25%),
+            linear-gradient(180deg, #f3fbf6 0%, #f8fcf9 48%, #eef8f1 100%) !important;
+        background-attachment: scroll !important;
+    }
+
+    gradio-app,
+    #root,
+    .main,
+    .gradio-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        overflow-x: hidden !important;
+    }
+
+    .gradio-container {
+        padding: 10px 12px 30px !important;
+        background: transparent !important;
+    }
+
+    .gradio-container::before {
+        display: none !important;
+    }
+
+    /* ---- Clean every Gradio row/column on the phone ---- */
+    .gradio-container .row,
+    .gradio-container .gradio-row {
+        display: flex !important;
+        flex-direction: column !important;
+        flex-wrap: nowrap !important;
+        align-items: stretch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        gap: 12px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .gradio-container .column,
+    .gradio-container .gradio-column {
+        display: flex !important;
+        flex: 0 0 auto !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* ---- Make the Analyze Your Plant area a clean stack ---- */
+    .section-title {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 24px 2px 12px !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .section-title-icon {
+        flex: 0 0 auto !important;
+    }
+
+    .input-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+        padding: 16px !important;
+        border-radius: 20px !important;
+        background: #ffffff !important;
+        border: 1px solid #d6e8dc !important;
+        box-shadow: 0 8px 24px rgba(6,78,59,.07) !important;
+        overflow: hidden !important;
+    }
+
+    .input-card h3,
+    .input-card p,
+    .input-card label,
+    .input-card span {
+        max-width: 100% !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* ---- Image uploader: no black/dark frame ---- */
+    .input-card .image-upload,
+    .input-card [data-testid="image"],
+    .input-card .image-container,
+    .input-card .image-frame,
+    .input-card .wrap,
+    .input-card .block {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        background: #f3fbf6 !important;
+        color: #12372a !important;
+    }
+
+    .input-card .image-upload {
+        min-height: 230px !important;
+        height: auto !important;
+        border-radius: 16px !important;
+        border: 2px dashed #9acbb4 !important;
+        overflow: hidden !important;
+    }
+
+    .input-card .image-upload img,
+    .input-card .image-container img,
+    .input-card img {
+        max-width: 100% !important;
+        width: auto !important;
+        height: auto !important;
+        object-fit: contain !important;
+    }
+
+    /* ---- Symptoms box: comfortable phone size ---- */
+    .input-card textarea,
+    .input-card input,
+    .input-card .textarea-container,
+    .input-card .input-container {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        background: #fbfefc !important;
+        color: #12372a !important;
+    }
+
+    .input-card textarea {
+        min-height: 175px !important;
+        font-size: 15px !important;
+        line-height: 1.55 !important;
+    }
+
+    .tip-box {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    /* ---- Analyze / Start Over: clean full-width buttons ---- */
+    .gradio-container .row:has(.analyze-button),
+    .gradio-container .gradio-row:has(.analyze-button) {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        gap: 9px !important;
+        margin: 4px 0 0 !important;
+    }
+
+    .analyze-button,
+    .clear-button {
+        display: flex !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        min-height: 54px !important;
+        margin: 0 !important;
+        box-sizing: border-box !important;
+        border-radius: 15px !important;
+    }
+
+    /* ---- Result area: keep every card inside the viewport ---- */
+    .diagnosis-wrapper,
+    .result-card,
+    .top-card,
+    .confidence-section,
+    .info-card,
+    .prevention-section,
+    .result-disclaimer,
+    .technical-details-final {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .diagnosis-wrapper {
+        border-radius: 20px !important;
+        overflow: hidden !important;
+    }
+
+    .diagnosis-top {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 26px 16px !important;
+        box-sizing: border-box !important;
+    }
+
+    .diagnosis-top h1 {
+        font-size: 25px !important;
+        line-height: 1.18 !important;
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .diagnosis-description,
+    .info-card-text,
+    .action-text,
+    .prevention-item,
+    .alternative-name,
+    .alternative-note,
+    .technical-card-final p,
+    .check-row p {
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .information-grid,
+    .prevention-list,
+    .technical-grid-final,
+    .technical-facts-final,
+    .details-grid,
+    .quick-grid,
+    .guide-grid,
+    .quality-strip,
+    .model-stats {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        grid-template-columns: 1fr !important;
+        box-sizing: border-box !important;
+    }
+
+    .overview-panel,
+    .model-panel,
+    .guide-wrapper,
+    .details-card,
+    .footer {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .overview-panel,
+    .model-panel,
+    .guide-wrapper,
+    .details-card {
+        padding: 18px !important;
+        border-radius: 20px !important;
+    }
+
+    .quick-card,
+    .guide-card,
+    .details-card,
+    .model-step,
+    .stat,
+    .quality-strip {
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .technical-details-final summary {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 14px !important;
+        grid-template-columns: 40px minmax(0, 1fr) 28px !important;
+        gap: 9px !important;
+    }
+
+    .technical-summary-title,
+    .technical-summary-subtitle {
+        overflow-wrap: anywhere !important;
+        word-break: break-word !important;
+    }
+
+    .footer {
+        padding: 22px 10px !important;
+        overflow-wrap: anywhere !important;
+    }
+}
+
 """
 
 
@@ -4560,7 +4825,7 @@ with gr.Blocks(
     # INPUT AREA
     # ========================================================
 
-    with gr.Row(elem_classes=["analysis-input-row"]):
+    with gr.Row():
 
         with gr.Column(
             scale=1,
