@@ -4065,6 +4065,321 @@ body {
         width:100% !important;
         margin-left:34px !important;
     }
+
+/* =========================================================
+   FINAL MOBILE OVERRIDE — PHONE SAFE LAYOUT
+   ========================================================= */
+
+html,
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+gradio-app {
+    display: block !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+}
+
+#root,
+.main,
+.gradio-container {
+    width: 100vw !important;
+    min-width: 0 !important;
+    max-width: 100vw !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+}
+
+.gradio-container {
+    padding-left: 28px !important;
+    padding-right: 28px !important;
+}
+
+/* Make every custom section calculate its width correctly. */
+.hero,
+.overview-panel,
+.model-panel,
+.guide-wrapper,
+.details-grid,
+.details-card,
+.result-card,
+.top-card,
+.technical-details-final,
+.footer,
+.section-title {
+    box-sizing: border-box !important;
+    max-width: 100% !important;
+}
+
+/* Restore readable text on pale cards. */
+.quick-card-mint,
+.quick-card-soft,
+.quick-card-mint h3,
+.quick-card-soft h3,
+.quick-card-mint p,
+.quick-card-soft p,
+.guide-card,
+.guide-card h3,
+.guide-card p,
+.quality-strip,
+.quality-strip b,
+.quality-strip div,
+.overview-intro,
+.overview-intro h2,
+.overview-intro p {
+    color: #12372a !important;
+}
+
+.guide-card p,
+.quick-card-mint p,
+.quick-card-soft p {
+    opacity: 1 !important;
+}
+
+@media (max-width: 700px) {
+
+    html,
+    body,
+    gradio-app,
+    #root,
+    .main,
+    .gradio-container {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    .gradio-container {
+        padding: 8px 10px 28px 10px !important;
+    }
+
+    /* Never allow a Gradio row to preserve desktop width. */
+    .gradio-row,
+    .gradio-row.wrap,
+    .gradio-column,
+    .block,
+    .form,
+    .input-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .gradio-row {
+        flex-wrap: wrap !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .gradio-column {
+        flex: 1 1 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+
+    /* Phone-friendly spacing. */
+    .hero {
+        width: 100% !important;
+        margin: 0 0 20px 0 !important;
+        padding: 34px 18px !important;
+        border-radius: 22px !important;
+    }
+
+    .hero h1 {
+        font-size: 30px !important;
+        line-height: 1.08 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .hero-subtitle {
+        font-size: 15px !important;
+        line-height: 1.45 !important;
+    }
+
+    .hero-description {
+        font-size: 13px !important;
+        line-height: 1.55 !important;
+    }
+
+    .overview-panel,
+    .guide-wrapper,
+    .details-card,
+    .model-panel {
+        width: 100% !important;
+        padding: 18px !important;
+        border-radius: 20px !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .overview-intro h2,
+    .guide-header h2,
+    .model-heading h2 {
+        font-size: 21px !important;
+        line-height: 1.25 !important;
+    }
+
+    .quick-grid,
+    .guide-grid,
+    .quality-strip,
+    .details-grid,
+    .model-stats,
+    .technical-grid-final {
+        grid-template-columns: 1fr !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .quick-card {
+        width: 100% !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        padding: 17px !important;
+        box-sizing: border-box !important;
+    }
+
+    .quick-card h3,
+    .guide-card h3 {
+        font-size: 16px !important;
+    }
+
+    .quick-card p,
+    .guide-card p,
+    .quality-strip,
+    .check-row p {
+        font-size: 12px !important;
+        line-height: 1.55 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .quality-strip {
+        padding: 13px !important;
+    }
+
+    .section-title {
+        margin: 22px 2px 12px 2px !important;
+        font-size: 21px !important;
+        line-height: 1.25 !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .input-card {
+        padding: 15px !important;
+        border-radius: 18px !important;
+        margin: 0 !important;
+    }
+
+    .image-upload {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    .tip-box {
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+
+    .analyze-button,
+    .clear-button {
+        width: 100% !important;
+        min-height: 52px !important;
+    }
+
+    /* Stack action buttons instead of squeezing them side-by-side. */
+    .gradio-row:has(.analyze-button) {
+        flex-direction: column !important;
+        gap: 9px !important;
+    }
+
+    .result-card,
+    .top-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 18px !important;
+        border-radius: 20px !important;
+        box-sizing: border-box !important;
+    }
+
+    .diagnosis-top {
+        padding: 24px 18px !important;
+    }
+
+    .diagnosis-top h1 {
+        font-size: 25px !important;
+        overflow-wrap: anywhere !important;
+    }
+
+    .confidence-section,
+    .info-card,
+    .prevention-section,
+    .result-disclaimer {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+
+    .technical-details-final {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        overflow: hidden !important;
+    }
+
+    .technical-details-final summary {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 16px !important;
+    }
+
+    .technical-summary-title {
+        font-size: 15px !important;
+    }
+
+    .technical-summary-subtitle {
+        font-size: 11px !important;
+        line-height: 1.4 !important;
+    }
+
+    .footer {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 24px 12px !important;
+        overflow-wrap: anywhere !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .gradio-container {
+        padding-left: 7px !important;
+        padding-right: 7px !important;
+    }
+
+    .hero h1 {
+        font-size: 27px !important;
+    }
+
+    .overview-panel,
+    .guide-wrapper,
+    .details-card,
+    .model-panel {
+        padding: 15px !important;
+    }
+}
+
 }
 """
 
