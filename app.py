@@ -3508,6 +3508,100 @@ footer {
 
 
 /* =========================================================
+   UNIVERSAL THEME + READABILITY SAFETY
+   ========================================================= */
+html, body {
+    color-scheme: light dark;
+}
+
+.gradio-container {
+    --app-text: var(--text-dark);
+    --app-text-soft: var(--text);
+    --app-muted: var(--text-light);
+    --app-card: var(--white);
+    --app-border: var(--border);
+}
+
+.dark .gradio-container {
+    --app-text: #f8fafc;
+    --app-text-soft: #dbe7e1;
+    --app-muted: #b7c8c0;
+    --app-card: #111827;
+    --app-border: #334155;
+}
+
+.gradio-container,
+.gradio-container .prose,
+.gradio-container label,
+.gradio-container .label-wrap,
+.gradio-container .label-wrap span,
+.gradio-container .info,
+.gradio-container .block-info {
+    color: var(--app-text, #17251f) !important;
+}
+
+.gradio-container textarea,
+.gradio-container input,
+.gradio-container select {
+    color: var(--app-text, #17251f) !important;
+    background: var(--app-card, #ffffff) !important;
+    border-color: var(--app-border, #dbe4e1) !important;
+}
+
+.gradio-container textarea::placeholder,
+.gradio-container input::placeholder {
+    color: var(--app-muted, #64748b) !important;
+    opacity: 1 !important;
+}
+
+/* Generated result text always follows the active application palette. */
+.result-card h1, .result-card h2, .result-card h3,
+.result-card p, .result-card span, .result-card strong,
+.top-card h1, .top-card h2, .top-card h3, .top-card p,
+.top-card span, .top-card strong, .empty-result h2,
+.empty-result p {
+    text-shadow: none !important;
+}
+
+/* Keep intentionally dark cards readable even when the host theme is light. */
+.quick-card-dark, .diagnosis-top, .checklist-card,
+.quick-card-dark *, .diagnosis-top *, .checklist-card * {
+    color: #ffffff !important;
+}
+
+/* Keep the hero readable on every host theme/background. */
+.hero, .hero h1, .hero p, .hero .hero-subtitle,
+.hero .hero-description, .hero .hero-badge {
+    color: #ffffff !important;
+}
+
+/* Text on the lighter guidance cards stays dark and high contrast. */
+.quick-card-mint, .quick-card-soft,
+.quick-card-mint *, .quick-card-soft * {
+    color: #12372a !important;
+}
+
+/* Never allow long disease names or paragraphs to create horizontal scroll. */
+*, *::before, *::after {
+    box-sizing: border-box;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+@media (prefers-color-scheme: dark) {
+    /* Host OS dark mode: keep the application surface coherent. */
+    .gradio-container {
+        --app-text: #f8fafc;
+        --app-text-soft: #dbe7e1;
+        --app-muted: #b7c8c0;
+        --app-card: #111827;
+        --app-border: #334155;
+        background: #0b1220 !important;
+        color: #f8fafc !important;
+    }
+}
+
+/* =========================================================
    MOBILE
    ========================================================= */
 
@@ -4065,321 +4159,6 @@ body {
         width:100% !important;
         margin-left:34px !important;
     }
-
-/* =========================================================
-   FINAL MOBILE OVERRIDE — PHONE SAFE LAYOUT
-   ========================================================= */
-
-html,
-body {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-}
-
-gradio-app {
-    display: block !important;
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-}
-
-#root,
-.main,
-.gradio-container {
-    width: 100vw !important;
-    min-width: 0 !important;
-    max-width: 100vw !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
-    overflow-x: hidden !important;
-}
-
-.gradio-container {
-    padding-left: 28px !important;
-    padding-right: 28px !important;
-}
-
-/* Make every custom section calculate its width correctly. */
-.hero,
-.overview-panel,
-.model-panel,
-.guide-wrapper,
-.details-grid,
-.details-card,
-.result-card,
-.top-card,
-.technical-details-final,
-.footer,
-.section-title {
-    box-sizing: border-box !important;
-    max-width: 100% !important;
-}
-
-/* Restore readable text on pale cards. */
-.quick-card-mint,
-.quick-card-soft,
-.quick-card-mint h3,
-.quick-card-soft h3,
-.quick-card-mint p,
-.quick-card-soft p,
-.guide-card,
-.guide-card h3,
-.guide-card p,
-.quality-strip,
-.quality-strip b,
-.quality-strip div,
-.overview-intro,
-.overview-intro h2,
-.overview-intro p {
-    color: #12372a !important;
-}
-
-.guide-card p,
-.quick-card-mint p,
-.quick-card-soft p {
-    opacity: 1 !important;
-}
-
-@media (max-width: 700px) {
-
-    html,
-    body,
-    gradio-app,
-    #root,
-    .main,
-    .gradio-container {
-        width: 100% !important;
-        min-width: 0 !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-    }
-
-    .gradio-container {
-        padding: 8px 10px 28px 10px !important;
-    }
-
-    /* Never allow a Gradio row to preserve desktop width. */
-    .gradio-row,
-    .gradio-row.wrap,
-    .gradio-column,
-    .block,
-    .form,
-    .input-card {
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0 !important;
-        box-sizing: border-box !important;
-    }
-
-    .gradio-row {
-        flex-wrap: wrap !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .gradio-column {
-        flex: 1 1 100% !important;
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    /* Phone-friendly spacing. */
-    .hero {
-        width: 100% !important;
-        margin: 0 0 20px 0 !important;
-        padding: 34px 18px !important;
-        border-radius: 22px !important;
-    }
-
-    .hero h1 {
-        font-size: 30px !important;
-        line-height: 1.08 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .hero-subtitle {
-        font-size: 15px !important;
-        line-height: 1.45 !important;
-    }
-
-    .hero-description {
-        font-size: 13px !important;
-        line-height: 1.55 !important;
-    }
-
-    .overview-panel,
-    .guide-wrapper,
-    .details-card,
-    .model-panel {
-        width: 100% !important;
-        padding: 18px !important;
-        border-radius: 20px !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .overview-intro h2,
-    .guide-header h2,
-    .model-heading h2 {
-        font-size: 21px !important;
-        line-height: 1.25 !important;
-    }
-
-    .quick-grid,
-    .guide-grid,
-    .quality-strip,
-    .details-grid,
-    .model-stats,
-    .technical-grid-final {
-        grid-template-columns: 1fr !important;
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    .quick-card {
-        width: 100% !important;
-        min-width: 0 !important;
-        min-height: 0 !important;
-        padding: 17px !important;
-        box-sizing: border-box !important;
-    }
-
-    .quick-card h3,
-    .guide-card h3 {
-        font-size: 16px !important;
-    }
-
-    .quick-card p,
-    .guide-card p,
-    .quality-strip,
-    .check-row p {
-        font-size: 12px !important;
-        line-height: 1.55 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .quality-strip {
-        padding: 13px !important;
-    }
-
-    .section-title {
-        margin: 22px 2px 12px 2px !important;
-        font-size: 21px !important;
-        line-height: 1.25 !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .input-card {
-        padding: 15px !important;
-        border-radius: 18px !important;
-        margin: 0 !important;
-    }
-
-    .image-upload {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
-    .tip-box {
-        width: 100% !important;
-        box-sizing: border-box !important;
-    }
-
-    .analyze-button,
-    .clear-button {
-        width: 100% !important;
-        min-height: 52px !important;
-    }
-
-    /* Stack action buttons instead of squeezing them side-by-side. */
-    .gradio-row:has(.analyze-button) {
-        flex-direction: column !important;
-        gap: 9px !important;
-    }
-
-    .result-card,
-    .top-card {
-        width: 100% !important;
-        max-width: 100% !important;
-        padding: 18px !important;
-        border-radius: 20px !important;
-        box-sizing: border-box !important;
-    }
-
-    .diagnosis-top {
-        padding: 24px 18px !important;
-    }
-
-    .diagnosis-top h1 {
-        font-size: 25px !important;
-        overflow-wrap: anywhere !important;
-    }
-
-    .confidence-section,
-    .info-card,
-    .prevention-section,
-    .result-disclaimer {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-    }
-
-    .technical-details-final {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        overflow: hidden !important;
-    }
-
-    .technical-details-final summary {
-        width: 100% !important;
-        box-sizing: border-box !important;
-        padding: 16px !important;
-    }
-
-    .technical-summary-title {
-        font-size: 15px !important;
-    }
-
-    .technical-summary-subtitle {
-        font-size: 11px !important;
-        line-height: 1.4 !important;
-    }
-
-    .footer {
-        width: 100% !important;
-        max-width: 100% !important;
-        box-sizing: border-box !important;
-        padding: 24px 12px !important;
-        overflow-wrap: anywhere !important;
-    }
-}
-
-@media (max-width: 380px) {
-    .gradio-container {
-        padding-left: 7px !important;
-        padding-right: 7px !important;
-    }
-
-    .hero h1 {
-        font-size: 27px !important;
-    }
-
-    .overview-panel,
-    .guide-wrapper,
-    .details-card,
-    .model-panel {
-        padding: 15px !important;
-    }
-}
-
 }
 """
 
@@ -4523,19 +4302,6 @@ with gr.Blocks(
                 elem_classes=["image-upload"]
             )
 
-            gr.HTML("""
-            <div class="tip-box">
-
-                <strong>📸 For a better result</strong>
-
-                <p>
-                    Use a well-lit image where the leaf is
-                    clearly visible. Avoid extremely blurry,
-                    dark, or distant photographs.
-                </p>
-
-            </div>
-            """)
 
 
         with gr.Column(
@@ -4562,19 +4328,6 @@ with gr.Blocks(
                 lines=8
             )
 
-            gr.HTML("""
-            <div class="tip-box">
-
-                <strong>💡 Helpful symptoms to mention</strong>
-
-                <p>
-                    Leaf color changes • spots • lesions •
-                    curling • white powder • yellowing •
-                    drying • wilting • unusual patterns
-                </p>
-
-            </div>
-            """)
 
 
     # ========================================================
@@ -4648,143 +4401,6 @@ with gr.Blocks(
         value="",
         elem_classes=["top-card"]
     )
-
-
-    # ========================================================
-    # USER GUIDE
-    # ========================================================
-
-    gr.HTML("""
-    <div class="guide-wrapper">
-
-        <div class="guide-header">
-
-            <h2>
-                🌱 How to Use PlantCare AI
-            </h2>
-
-            <p>
-                Follow three simple steps to get the most
-                useful assessment from the system.
-            </p>
-
-        </div>
-
-
-        <div class="guide-grid">
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    1
-                </div>
-
-                <h3>
-                    Upload a Leaf
-                </h3>
-
-                <p>
-                    Choose a clear photograph of the leaf
-                    showing the visible symptoms or damaged
-                    area.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    2
-                </div>
-
-                <h3>
-                    Describe Symptoms
-                </h3>
-
-                <p>
-                    Explain changes such as spots, yellowing,
-                    curling, discoloration, powdery growth,
-                    or drying.
-                </p>
-
-            </div>
-
-
-            <div class="guide-card">
-
-                <div class="guide-number">
-                    3
-                </div>
-
-                <h3>
-                    Review the Result
-                </h3>
-
-                <p>
-                    Read the possible condition, confidence,
-                    recommended actions, and prevention
-                    guidance before deciding what to do next.
-                </p>
-
-            </div>
-
-        </div>
-
-    </div>
-    """)
-
-
-    # ========================================================
-    # BEFORE YOU ANALYZE
-    # ========================================================
-
-    gr.HTML(f"""
-    <div class="details-grid details-grid-single">
-
-        <div class="details-card checklist-card">
-            <div class="details-card-title">📸 Before you analyze</div>
-            <div class="check-row"><span>01</span><p><b>Clean view:</b> make sure the leaf is visible and not heavily covered by fingers or objects.</p></div>
-            <div class="check-row"><span>02</span><p><b>Good lighting:</b> avoid very dark photos, harsh glare, or strong shadows.</p></div>
-            <div class="check-row"><span>03</span><p><b>Useful context:</b> describe what changed, where it appears, and whether it is spreading.</p></div>
-            <div class="check-row"><span>04</span><p><b>Use the result carefully:</b> low-confidence or unusual cases deserve extra confirmation.</p></div>
-        </div>
-
-    </div>
-    """)
-
-    # ========================================================
-    # DISCLAIMER
-    # ========================================================
-
-    gr.HTML("""
-    <div class="result-disclaimer"
-         style="margin-top:30px;">
-
-        <div class="disclaimer-icon">
-            ⚠️
-        </div>
-
-        <div>
-
-            <strong>
-                Responsible Use of AI Results
-            </strong>
-
-            <p>
-                PlantCare AI provides an AI-assisted prediction
-                based on the information submitted by the user.
-                It is intended for educational and decision-support
-                purposes and does not replace professional
-                agricultural diagnosis. For serious, rapidly
-                spreading, or uncertain plant problems, consult
-                a qualified agricultural specialist.
-            </p>
-
-        </div>
-
-    </div>
-    """)
 
 
     # ========================================================
